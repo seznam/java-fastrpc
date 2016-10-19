@@ -3,20 +3,20 @@ package cz.seznam.frpc.server;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
  * @author David Moidl david.moidl@firma.seznam.cz
  */
-class ReflectiveFrpcHandlerWrapper implements FrpcHandler {
+class ReflectiveFrpcHandler implements FrpcHandler {
 
     private Supplier<?> supplier;
-    private Map<String, Method> methods;
+    private MethodLocator methodLocator;
 
-    public ReflectiveFrpcHandlerWrapper(Supplier<?> supplier, Map<String, Method> methods) {
-        this.supplier = supplier;
-        this.methods = methods;
+    public ReflectiveFrpcHandler(Supplier<?> supplier, MethodLocator methodLocator) {
+        this.supplier = Objects.requireNonNull(supplier);
+        this.methodLocator = Objects.requireNonNull(methodLocator);
     }
 
     @Override
@@ -34,11 +34,7 @@ class ReflectiveFrpcHandlerWrapper implements FrpcHandler {
 
     private Method findMethod(String methodName, Object[] args) throws NoSuchMethodException {
         // try to find the method by name
-        Method nameMatchingMethod = methods.get(methodName);
-        // if there is no mapping for such a method name, throw an exception
-        if(nameMatchingMethod == null) {
-            throw new NoSuchMethodException("No method found for method name " + methodName);
-        }
+        Method nameMatchingMethod = methodLocator.locateMethod(methodName);
         // check that number of given arguments matches signature of given method
         if(nameMatchingMethod.getParameterCount() != args.length) {
             throw new IllegalArgumentException(
