@@ -6,19 +6,20 @@ import java.util.Objects;
 /**
  * @author David Moidl david.moidl@firma.seznam.cz
  */
-class ReflectiveMethodNameToParameterTypesMapper implements MethodNameToParameterTypesMapper {
+class ReflectiveMethodMetaDataProvider implements MethodMetaDataProvider {
 
     private MethodLocator methodLocator;
 
-    public ReflectiveMethodNameToParameterTypesMapper(MethodLocator methodLocator) {
+    public ReflectiveMethodMetaDataProvider(MethodLocator methodLocator) {
         this.methodLocator = Objects.requireNonNull(methodLocator);
     }
 
     @Override
-    public Class<?>[] mapToParameterTypes(String methodName) throws NoSuchMethodException {
+    public MethodMetaData getMethodMetaData(String methodName) throws NoSuchMethodException {
         // try to find the right method by name
         Method method = methodLocator.locateMethod(methodName);
-        // return array of parameter types of this method
-        return method.getParameterTypes();
+        // return method metadata
+        return MethodMetaData.fromMethod(method);
     }
+
 }

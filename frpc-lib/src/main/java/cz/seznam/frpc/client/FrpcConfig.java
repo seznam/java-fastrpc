@@ -13,9 +13,9 @@ import java.net.URL;
  */
 public class FrpcConfig {
 
-    private static final String FRPC_HTTP_URL = "http://%s:%d%s";
+    private static final String FRPC_HTTP_URL = "http://%s:%d%s/";
 
-    private static final String FRPC_HTTPS_URL = "https://%s:%d%s";
+    private static final String FRPC_HTTPS_URL = "https://%s:%d%s/";
 
     private int connectionTimeout = 10000;
 

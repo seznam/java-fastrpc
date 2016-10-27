@@ -13,14 +13,14 @@ public class FrpcDemoClient
         // Creation of FastRPC client
         FrpcClient frpcClient = new FrpcClient(frpcConfig);
 
-        Object[] result = null;
+        Object result = null;
 
         try {
             // Calling of remote method via FastRPC client
             // Method name: indexOf
             // Parameters: the string to search, the substring to search for
             // Returns: the array of indexes of occurrences of the specified substring
-            result = (Object[]) frpcClient.call("indexOf", "abracadabra", "bra");
+            result = frpcClient.call("operations.multiply", 3, 2);
         } catch (FrpcConnectionException e) {
             e.printStackTrace();
         } catch (FrpcDataException e) {

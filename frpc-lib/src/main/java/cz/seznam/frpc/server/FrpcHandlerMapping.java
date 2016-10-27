@@ -15,16 +15,16 @@ public class FrpcHandlerMapping {
     // TODO: add dependency to SLF4J or something like that
     private static final Logger LOGGER = Logger.getAnonymousLogger();
 
-    private Map<String, Pair<MethodNameToParameterTypesMapper, FrpcHandler>> mapping = new HashMap<>();
+    private Map<String, FrpcMethodHandler> mapping = new HashMap<>();
 
     public void addHandler(String key, Object handler) {
         Objects.requireNonNull(handler);
         createMapping(key, Objects.requireNonNull(handler).getClass(), () -> handler);
     }
 
-    public void addHandler(String key, MethodNameToParameterTypesMapper methodNameToParameterTypesMapper, FrpcHandler handler) {
+    public void addHandler(String key, MethodMetaDataProvider methodMetaDataProvider, FrpcHandler handler) {
         mapping.put(Objects.requireNonNull(key),
-                new Pair<>(Objects.requireNonNull(methodNameToParameterTypesMapper), Objects.requireNonNull(handler)));
+                new FrpcMethodHandler(Objects.requireNonNull(methodMetaDataProvider), Objects.requireNonNull(handler)));
     }
 
     public <T> void addHandler(String key, Class<T> handlerClass, Supplier<T> handlerSupplier) {
@@ -56,15 +56,15 @@ public class FrpcHandlerMapping {
     private void createMapping(String key, Class<?> handlerClass, Supplier<?> supplier) {
         // create MethodLocator for given class
         MethodLocator methodLocator = new ReflectiveMethodLocator(handlerClass);
-        // create MethodNameToParameterTypesMapper
-        MethodNameToParameterTypesMapper nameToTypesMapper = new ReflectiveMethodNameToParameterTypesMapper(methodLocator);
+        // create MethodMetaDataProvider
+        MethodMetaDataProvider nameToTypesMapper = new ReflectiveMethodMetaDataProvider(methodLocator);
         // create the handler
         ReflectiveFrpcHandler handler = new ReflectiveFrpcHandler(supplier, methodLocator);
         // save it into the map
-        mapping.put(Objects.requireNonNull(key), new Pair<>(nameToTypesMapper, handler));
+        mapping.put(Objects.requireNonNull(key), new FrpcMethodHandler(nameToTypesMapper, handler));
     }
 
-    Map<String, Pair<MethodNameToParameterTypesMapper, FrpcHandler>> getMapping() {
+    Map<String, FrpcMethodHandler> getMapping() {
         return mapping;
     }
 

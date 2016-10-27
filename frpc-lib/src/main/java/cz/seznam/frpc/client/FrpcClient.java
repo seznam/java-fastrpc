@@ -6,8 +6,10 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.*;
-import java.util.Map.Entry;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -55,16 +57,6 @@ public class FrpcClient {
      * @param config
      */
     public FrpcClient(FrpcConfig config) {
-        configuration = config;
-        url = FrpcConfig.buildUrl(config);
-    }
-
-    /**
-     * Sets new frpc configuration.
-     * 
-     * @param config
-     */
-    public void setConfig(FrpcConfig config) {
         configuration = config;
         url = FrpcConfig.buildUrl(config);
     }
@@ -297,18 +289,7 @@ public class FrpcClient {
     }
 
     private static String cookiesToString(Map<String, String> cookies) {
-
-        StringBuilder sb = new StringBuilder();
-
-        Set<Entry<String, String>> pairs = cookies.entrySet();
-
-        for (Iterator<Entry<String, String>> i = pairs.iterator(); i.hasNext();) {
-            Entry<String, String> entry = i.next();
-
-            sb.append(entry.getKey()).append("=").append(entry.getValue()).append(";");
-        }
-
-        return sb.toString();
+        return cookies.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining(";", "", ";"));
     }
 
     private static Map<String, String> getCookiesFromConnection(URLConnection connection) {
