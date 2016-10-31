@@ -64,16 +64,7 @@ public class FrpcBinMarshaller {
         while ((size >> (octets << 3)) > 255 && octets < 7) {
             octets++;
         }
-        try {
-            writer.write(FrpcInternals.TYPE_BINARY | octets);
-
-            for (int i = 0; i <= octets; i++) {
-                writer.write((size >> (i << 3)) & 0xff);
-            }
-            writer.write(value);
-        } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
-        }
+        doPackBinary(value, size, octets);
     }
 
     public void packBinary(ByteBuffer value) throws FrpcDataException {
@@ -83,6 +74,10 @@ public class FrpcBinMarshaller {
         while ((size >> (octets << 3)) > 255 && octets < 7) {
             octets++;
         }
+        doPackBinary(data, size, octets);
+    }
+
+    private void doPackBinary(byte[] data, int size, int octets) throws FrpcDataException {
         try {
             writer.write(FrpcInternals.TYPE_BINARY | octets);
 
@@ -265,12 +260,12 @@ public class FrpcBinMarshaller {
             for (Object obj : array) {
                 packItem(obj);
             }
-        } else if (item instanceof List) {
-            List<?> list = (List<?>) item;
-            int size = list.size();
+        } else if(item instanceof Collection) {
+            Collection<?> collection = (Collection<?>) item;
+            int size = collection.size();
             packArray(size);
-            for (int i = 0; i < size; i++) {
-                packItem(list.get(i));
+            for (Object aList : collection) {
+                packItem(aList);
             }
         } else if (item instanceof double[]) {
             double[] array = (double[]) item;

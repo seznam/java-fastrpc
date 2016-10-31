@@ -57,11 +57,11 @@ public class FrpcHandlerMapping {
         // create MethodLocator for given class
         MethodLocator methodLocator = new ReflectiveMethodLocator(handlerClass);
         // create MethodMetaDataProvider
-        MethodMetaDataProvider nameToTypesMapper = new ReflectiveMethodMetaDataProvider(methodLocator);
+        MethodMetaDataProvider metaDataProvider = new ReflectiveMethodMetaDataProvider(methodLocator);
         // create the handler
         ReflectiveFrpcHandler handler = new ReflectiveFrpcHandler(supplier, methodLocator);
         // save it into the map
-        mapping.put(Objects.requireNonNull(key), new FrpcMethodHandler(nameToTypesMapper, handler));
+        mapping.put(Objects.requireNonNull(key), new FrpcMethodHandler(metaDataProvider, handler));
     }
 
     Map<String, FrpcMethodHandler> getMapping() {

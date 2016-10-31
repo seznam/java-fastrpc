@@ -2,6 +2,8 @@ package cz.seznam.frpc.server;
 
 import cz.seznam.frpc.FrpcIgnore;
 import cz.seznam.frpc.FrpcName;
+import cz.seznam.frpc.FrpcResponse;
+import cz.seznam.frpc.FrpcTypes;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -37,6 +39,8 @@ class ReflectiveMethodLocator implements MethodLocator {
                 // filter out those which are static, non-public or annotated by @FrpcIgnore
                 .filter(m -> Modifier.isPublic(m.getModifiers()) && !Modifier.isStatic(m.getModifiers())
                         && !m.isAnnotationPresent(FrpcIgnore.class))
+                // check params of each method for being compatible with FRPC
+                .map(this::checkMethod)
                 // and map them by their names
                 .collect(Collectors.toMap(m -> {
                     FrpcName frpcName = m.getAnnotation(FrpcName.class);
@@ -51,5 +55,26 @@ class ReflectiveMethodLocator implements MethodLocator {
         return methodsByName;
     }
 
+    private Method checkMethod(Method method) {
+        // iterate method params and check that all of them are compatible with FRPC
+        for(Class<?> parameterType : method.getParameterTypes()) {
+            if(!FrpcTypes.isCompatibleType(parameterType)) {
+                throw new UnsupportedParameterTypeException("Method \"" + method.getName() + "\" of class "
+                        + method.getDeclaringClass().getSimpleName() + " declares parameter of type "
+                        + parameterType.getSimpleName() + " which is an unsupported FRPC type.");
+            }
+        }
+        // check result type
+        Class<?> returnType = method.getReturnType();
+        // if it's not a Map, then @FrpcResponse annotation must be present on this method
+        if(returnType != Map.class && !method.isAnnotationPresent(FrpcResponse.class)) {
+            throw new UnsupportedReturnTypeException("Method \"" + method.getName() + "\" of class "
+                    + method.getDeclaringClass().getSimpleName()
+                    + " is not annotated by @" + FrpcResponse.class.getSimpleName() + " and has a return type "
+                    + method.getReturnType().getSimpleName() + " which is not a Map. Either add the annotation or make it return a Map.");
+        }
+
+        return method;
+    }
 
 }

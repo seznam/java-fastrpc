@@ -74,22 +74,37 @@ public class FrpcBinUnmarshaller {
         return string;
     }
 
-    private Double unmarshallDouble(int data) throws FrpcDataException {
+    private Number unmarshallFloatingPointType(int data) throws FrpcDataException {
         long binaryValue = 0;
         for (int i = 0; i < 8; i++) {
             binaryValue |= (long) read() << (i << 3);
         }
-        return Double.longBitsToDouble(binaryValue);
+        double value = Double.longBitsToDouble(binaryValue);
+        // if the result fits into float, return float instead
+        if((float) value == value) {
+            return (float) value;
+        } else {
+            return value;
+        }
     }
 
-    private Long unmarshallInt(int data) throws FrpcDataException {
+    private Number unmarshallIntegralType(int data, boolean positive) throws FrpcDataException {
         int octets = data & FrpcInternals.MASK_ADD;
         long value = 0;
 
         for (int i = 0; i <= octets; i++) {
             value |= (long) read() << (i << 3);
         }
-        return value;
+        // if the value should be negative, make it so
+        if(!positive) {
+            value = -value;
+        }
+        // if the value fits into int, return int instead
+        if((int) value == value) {
+            return (int) value;
+        } else {
+            return value;
+        }
     }
 
     private Boolean unmarshallBoolean(int data) throws FrpcDataException {
@@ -240,13 +255,13 @@ public class FrpcBinUnmarshaller {
                 result = unmarshallString(data);
                 break;
             case FrpcInternals.TYPE_DOUBLE:
-                result = unmarshallDouble(data);
+                result = unmarshallFloatingPointType(data);
                 break;
             case FrpcInternals.TYPE_INT_POS:
-                result = unmarshallInt(data);
+                result = unmarshallIntegralType(data, true);
                 break;
             case FrpcInternals.TYPE_INT_NEG:
-                result = -unmarshallInt(data);
+                result = unmarshallIntegralType(data, false);
                 break;
             case FrpcInternals.TYPE_BOOL:
                 result = unmarshallBoolean(data);

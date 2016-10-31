@@ -14,7 +14,7 @@ class ReflectiveFrpcHandler implements FrpcHandler {
     private Supplier<?> supplier;
     private MethodLocator methodLocator;
 
-    public ReflectiveFrpcHandler(Supplier<?> supplier, MethodLocator methodLocator) {
+    ReflectiveFrpcHandler(Supplier<?> supplier, MethodLocator methodLocator) {
         this.supplier = Objects.requireNonNull(supplier);
         this.methodLocator = Objects.requireNonNull(methodLocator);
     }

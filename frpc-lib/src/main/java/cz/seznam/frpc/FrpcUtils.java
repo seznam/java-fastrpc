@@ -33,7 +33,8 @@ public class FrpcUtils {
 
     public static Map<String, Object> wrapException(Exception exception) {
         // serialize stack trace into one string
-        String statusMessage = Arrays.stream(exception.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining("\n"));
+        String statusMessage = exception.getMessage() + "\n" +
+                Arrays.stream(exception.getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining("\n"));
         // return error containing this status message
         return error(statusMessage);
     }
