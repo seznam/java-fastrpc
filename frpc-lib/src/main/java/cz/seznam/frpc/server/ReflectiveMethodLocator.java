@@ -4,6 +4,8 @@ import cz.seznam.frpc.FrpcIgnore;
 import cz.seznam.frpc.FrpcName;
 import cz.seznam.frpc.FrpcResponse;
 import cz.seznam.frpc.FrpcTypes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 class ReflectiveMethodLocator implements MethodLocator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReflectiveMethodLocator.class);
 
     private Map<String, Method> methodsByName;
 
@@ -34,7 +38,7 @@ class ReflectiveMethodLocator implements MethodLocator {
     }
 
     private Map<String, Method> mapMethods(Class<?> clazz) {
-        // get declared methods of given class
+        // getResult declared methods of given class
         Map<String, Method> methodsByName = Arrays.stream(clazz.getDeclaredMethods())
                 // filter out those which are static, non-public or annotated by @FrpcIgnore
                 .filter(m -> Modifier.isPublic(m.getModifiers()) && !Modifier.isStatic(m.getModifiers())
@@ -50,6 +54,8 @@ class ReflectiveMethodLocator implements MethodLocator {
                     throw new IllegalArgumentException("Class " + clazz.getSimpleName()
                             + " contains ambiguous methods named " + x.getName());
                 }));
+
+        LOGGER.debug("Mapped {} methods of class {} as FRPC methods: {}", methodsByName.size(), clazz, methodsByName);
 
         // then create wrapper for this supplier
         return methodsByName;

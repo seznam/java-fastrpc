@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Calculator {
 
-    private AtomicLong addCallCount;
+    private AtomicLong addCallCount = new AtomicLong(0);
 
     @FrpcName("add")
     @FrpcResponse(key = "result")

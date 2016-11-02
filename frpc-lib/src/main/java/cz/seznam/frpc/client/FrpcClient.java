@@ -1,320 +1,169 @@
 package cz.seznam.frpc.client;
 
-import cz.seznam.frpc.*;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.api.Request;
 
-import java.io.*;
-import java.net.HttpURLConnection;
+import java.net.HttpCookie;
 import java.net.URL;
-import java.net.URLConnection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
 
 /**
- * Frpc client class.
- * 
- * With this class you can call fprc methods with parametrs at server with given
- * configuration.
- * 
- * Class contains call methods with different types of result data for easy use
- * in different cases.
- * 
- * All calls of this class are synchronous. For easy asynchronous calls use
- * FrpcAsynTask,
- * or implement your own threads using FrpcClient.
- * 
- * FrpcTypes mapping:
- * 
- * 
- * This frpc library uses java primitive types (or their wrapper classes) as frpc types.
- * Frpc structure is used as Map<String, Object>, frpc array as Object[].
- * Datetime is used as GregorianCalendar.
- * 
- * @author Jakub Janda
- * 
+ * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class FrpcClient {
 
-    static String LOGTAG = "FRPC";
+    private HttpClient httpClient;
+    private String urlString;
+    private List<HttpCookie> cookies;
+    private Map<String, String> headers;
+    private long connectionTimeout = 10000;
+    private TimeUnit timeoutTimeUnit = TimeUnit.MILLISECONDS;
+    private long retryDelay = 0;
+    private TimeUnit retryDelayTimeUnit = TimeUnit.MILLISECONDS;
+    private int maxAttemptCount = 3;
+    private List<Object> implicitParameters = Collections.emptyList();
 
-    static String LOGRESULT = "FRPCRESULT";
-
-    private FrpcConfig configuration;
-
-    private HttpURLConnection connection;
-
-    private URL url;
-
-    private Map<String, String> requestCookies;
-
-    private Map<String, String> responseCookies;
-
-    /**
-     * Creates new instance of FrpcClient with given server configuration.
-     * 
-     * @param config
-     */
-    public FrpcClient(FrpcConfig config) {
-        configuration = config;
-        url = FrpcConfig.buildUrl(config);
+    public FrpcClient(URL url) {
+        this(url, new HttpClient());
     }
 
-    private void prepareConnection() throws FrpcConnectionException {
+    public FrpcClient(URL url, HttpClient httpClient) {
+        this.urlString = Objects.requireNonNull(url).toString();
+        this.httpClient = Objects.requireNonNull(httpClient);
+        // start the client
         try {
-            if (url != null) {
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setDoInput(true);
-                connection.setDoOutput(true);
-
-                if (configuration.useChunkedData()) {
-                    connection.setChunkedStreamingMode(0);
-                }
-
-                connection.setConnectTimeout(configuration.getConnectionTimeout());
-                connection.setReadTimeout(configuration.getReadTimeout());
-                connection.setRequestProperty("Content-Type", "application/x-frpc");
-                connection.setRequestProperty("Accept", "application/x-frpc");
-                connection.setRequestProperty("Accept-encoding", "gzip");
-
-                if (requestCookies != null && !requestCookies.isEmpty()) {
-                    String cookieString = cookiesToString(requestCookies);
-                    connection.setRequestProperty("Cookie", cookieString);
-                }
-
-            } else {
-                throw new FrpcConnectionException("Frpc url is null! Check your FrpcConfig.");
-            }
-        } catch (IOException e) {
-            throw new FrpcConnectionException(e.toString());
+            httpClient.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    public List<HttpCookie> getCookies() {
+        return Collections.unmodifiableList(cookies);
+    }
+
+    public void setCookies(List<HttpCookie> cookies) {
+        this.cookies = cookies;
+    }
+
+    public Map<String, String> getHeaders() {
+        return Collections.unmodifiableMap(headers);
+    }
+
+    public void setHeaders(Map<String, String> headers) {
+        this.headers = headers;
     }
 
     /**
-     * Basic call of frpc method.
-     * 
-     * Returns Object as result. It's up to user to check, what it actually is.
-     * 
-     * 
-     * @param method name of method on server
-     * @param params array of method params
-     * 
-     * @return result as frpc object
-     * 
-     * @throws FrpcConnectionException
-     * @throws FrpcDataException
+     * Returns connection timeout in millis.
+     *
+     * Default is 10000.
+     *
+     * @return connection timeout in millis
      */
-    public Object call(String method, Object... params) throws FrpcConnectionException,
-            FrpcDataException {
-
-        Object result = null;
-        OutputStream out;
-        InputStream in = null;
-        int attempts = 0;
-        boolean done = false;
-
-        do {
-            attempts++;
-            try {
-                prepareConnection();
-
-                if (configuration.getBufferSize() > 0) {
-                    out = new BufferedOutputStream(this.connection.getOutputStream(),
-                            configuration.getBufferSize());
-                } else {
-                    out = new BufferedOutputStream(this.connection.getOutputStream());
-                }
-
-                FrpcBinMarshaller marshaller = new FrpcBinMarshaller(out);
-
-                marshaller.packMagic();
-                marshaller.packMethodCall(method);
-
-                if (configuration.getParametrPrefix() != null) {
-                    for (Object param : configuration.getParametrPrefix()) {
-                        marshaller.packItem(param);
-                    }
-                }
-
-                for (Object param : params) {
-                    marshaller.packItem(param);
-                }
-                out.flush();
-
-                String contentEncoding = connection.getHeaderField("Content-encoding");
-
-                if (contentEncoding == null) {
-                    if (configuration.getBufferSize() > 0) {
-                        in = new BufferedInputStream(connection.getInputStream(),
-                                configuration.getBufferSize());
-                    } else {
-                        in = new BufferedInputStream(connection.getInputStream());
-                    }
-                } else if (contentEncoding.equals("gzip")) {
-                    if (configuration.getBufferSize() > 0) {
-                        in = new BufferedInputStream(new GZIPInputStream(
-                                connection.getInputStream()), configuration.getBufferSize());
-                    } else {
-                        in = new BufferedInputStream(new GZIPInputStream(
-                                connection.getInputStream()));
-                    }
-                } else {
-                    FrpcLog.w(LOGTAG, "Bad connnection encoding!!! - " + contentEncoding);
-                }
-
-                FrpcBinUnmarshaller unm = new FrpcBinUnmarshaller(in);
-                result = unm.unmarshallObject();
-
-                responseCookies = getCookiesFromConnection(connection);
-
-                if (!configuration.isKeepAlive()) {
-                    connection.disconnect();
-                }
-
-                done = true;
-
-            } catch (IOException | FrpcConnectionException e) {
-                if (attempts == configuration.getAttemptCount()) {
-
-                    String msg = String.format(
-                            "FrpcConnectionException after all attempts (%d): %s", attempts,
-                            e.toString());
-                    FrpcLog.w(LOGTAG, msg);
-
-                    throw new FrpcConnectionException(msg);
-                }
-            } catch (FrpcDataException e) {
-                if (attempts == configuration.getAttemptCount()) {
-                    String msg = String.format("FrpcDataException after all attempts (%d): %s",
-                            attempts, e.toString());
-                    FrpcLog.w(LOGTAG, msg);
-
-                    throw new FrpcDataException(msg);
-                }
-            }
-        } while (!done && attempts <= configuration.getAttemptCount());
-
-        return result;
+    public long getConnectionTimeout() {
+        return connectionTimeout;
     }
 
-    /** Call frpc method with result as FrpcStruct.
-     * 
-     * This is useful, when you expecting result as a FrpcStruct.
-     * 
-     * @param method
-     * @param params
-     * 
-     * @return result as FrpcStruct
-     * 
-     * @throws FrpcConnectionException
-     * @throws FrpcDataException
+    /**
+     * Sets connections timeout in millis.
+     *
+     * @param timeout the timeout to be set
      */
-    public FrpcStruct callAsFrpcStruct(String method, Object... params)
-            throws FrpcConnectionException, FrpcDataException {
-        FrpcStruct resultStruct = null;
-
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> result = (Map<String, Object>) call(method, params);
-
-            if (result != null) {
-                resultStruct = FrpcStruct.fromMap(result);
-            } else {
-                resultStruct = null;
-            }
-        } catch (ClassCastException e) {
-            FrpcLog.e(LOGTAG, "Error in result " + e);
-        }
-
-        return resultStruct;
+    public void setConnectionTimeout(long timeout) {
+        connectionTimeout = timeout;
     }
 
-    /** Call frpc as FrpcResult.
-     * 
-     * This method uses callAsFrpcStruct and catches its exceptions.
-     * Exceptions are converted to status of FrpcResult.
-     * 
-     * 
-     * @param method
-     * @param params
-     * 
-     * @return result as FrpcResult
+    public TimeUnit getTimeoutTimeUnit() {
+        return timeoutTimeUnit;
+    }
+
+    public void setTimeoutTimeUnit(TimeUnit timeoutTimeUnit) {
+        this.timeoutTimeUnit = timeoutTimeUnit;
+    }
+
+    public long getRetryDelay() {
+        return retryDelay;
+    }
+
+    public void setRetryDelay(long retryDelay) {
+        this.retryDelay = retryDelay;
+    }
+
+    public TimeUnit getRetryDelayTimeUnit() {
+        return retryDelayTimeUnit;
+    }
+
+    public void setRetryDelayTimeUnit(TimeUnit retryDelayTimeUnit) {
+        this.retryDelayTimeUnit = retryDelayTimeUnit;
+    }
+
+    /**
+     * Returns number of repeated calls to a method when a call fails.
+     *
+     * Default is 3.
+     *
+     * @return number of repeated calls to a method when a call fails
      */
-    public FrpcResult callAsFrpcResult(String method, Object... params) {
-        FrpcStruct data = null;
-        FrpcResult.FrpcResultStatus status = FrpcResult.FrpcResultStatus.RESULT_OK;
-
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> result = (Map<String, Object>) call(method, params);
-
-            if (result != null) {
-                data = FrpcStruct.fromMap(result);
-            } else {
-                data = null;
-            }
-
-        } catch (ClassCastException | FrpcDataException e) {
-            status = FrpcResult.FrpcResultStatus.RESULT_DATA_ERROR;
-        } catch (FrpcConnectionException e) {
-            status = FrpcResult.FrpcResultStatus.RESULT_NETWORK_ERROR;
-        }
-
-        return new FrpcResult(data, status);
+    public int getAttemptCount() {
+        return maxAttemptCount;
     }
 
-    public void setRequestCookies(Map<String, String> cookies) {
-        requestCookies = cookies;
+    /**
+     * Sets number of repeated calls to a method when a call fails.
+     * Calls are only repeated in case of transport error (connection timeout etc.).
+     *
+     * @param count number of repeated calls to a method when a call fails
+     */
+    public void setAttemptCount(int count) {
+        maxAttemptCount = count;
     }
 
-    public void addRequestCookie(String name, String value) {
-        if (requestCookies == null) {
-            requestCookies = new HashMap<String, String>();
-        }
-
-        requestCookies.put(name, value);
+    /**
+     * Returns an immutable view of currently set implicit parameters.
+     *
+     * @return immutable list of implicit parameters
+     * @see #setImplicitParameters(Object[])
+     */
+    public List<Object> getImplicitParameters() {
+        return Collections.unmodifiableList(implicitParameters);
     }
 
-    public Map<String, String> getResponseCookies() {
-        return responseCookies;
+    /**
+     * Sets implicit parameters. Given array is copied so the caller is free to modify afterwards without any
+     * effect on this {@code FrpcClient} instance. <br />
+     * Items in array are automatically added into each request before regular
+     * FRPC method parameters. This can be useful when sending info about device,
+     * user, etc. with each request.
+     *
+     * @param implicitParameters array of implicit parameters
+     */
+    public void setImplicitParameters(Object... implicitParameters) {
+        Objects.requireNonNull(implicitParameters);
+        this.implicitParameters = Arrays.stream(implicitParameters).collect(Collectors.toList());
     }
 
-    public void clearRequestCookies() {
-        requestCookies = null;
+    public FrpcMethodCall prepareCall(String method, Object... params) {
+        // check arguments
+        Objects.requireNonNull(method);
+        List<Object> paramsAsList = Arrays.asList(Objects.requireNonNull(params));
+        // and create FrpcMethodCall object
+        return new FrpcMethodCall(createRequest(), implicitParameters, cookies, headers, maxAttemptCount,
+                connectionTimeout, timeoutTimeUnit, retryDelay, retryDelayTimeUnit, method, paramsAsList);
     }
 
-    public void clearResponseCookies() {
-        responseCookies = null;
+    public FrpcCallResult call(String method, Object... params) {
+        return prepareCall(method, params).getResult();
     }
 
-    private static String cookiesToString(Map<String, String> cookies) {
-        return cookies.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining(";", "", ";"));
+    public UnwrappedFrpcCallResult callAndUnwrap(String method, Object... params) {
+        return prepareCall(method, params).getResult().unwrap();
     }
 
-    private static Map<String, String> getCookiesFromConnection(URLConnection connection) {
-
-        Map<String, List<String>> headers = connection.getHeaderFields();
-        Map<String, String> cookies = null;
-
-        List<String> cookieStrings = headers.get("Set-Cookie");
-
-        if (cookieStrings != null && !cookieStrings.isEmpty()) {
-            cookies = new HashMap<>();
-
-            for (String cookieString : cookieStrings) {
-                String[] cookieParts = cookieString.split(";");
-
-                if (cookieParts.length > 0) {
-                    String[] nameValue = cookieParts[0].split("=");
-                    if (nameValue.length > 1){
-                        cookies.put(nameValue[0], nameValue[1]);
-                    }
-                }
-            }
-        }
-
-        return cookies;
+    private Request createRequest() {
+        return httpClient.POST(urlString);
     }
 
 }

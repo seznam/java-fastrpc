@@ -1,20 +1,28 @@
 package cz.seznam.frpc;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
-public class FrpcBinUnmarshaller {
+/**
+ * @author David Moidl david.moidl@firma.seznam.cz
+ */
+public class FrpcUnmarshaller {
 
     private InputStream input;
 
-    public FrpcBinUnmarshaller(InputStream in) {
-        input = in;
+    public FrpcUnmarshaller(byte[] data) {
+        this(new ByteArrayInputStream(Objects.requireNonNull(data)));
+    }
+
+    public FrpcUnmarshaller(InputStream inputStream) {
+        input = Objects.requireNonNull(inputStream);
     }
 
     private int read() throws FrpcDataException {
@@ -188,27 +196,24 @@ public class FrpcBinUnmarshaller {
         year |= ((data << 3));
         year += FrpcInternals.DATE_YEAR_OFFSET;
 
-        Calendar datetime = GregorianCalendar.getInstance();
+        Calendar datetime = Calendar.getInstance();
 
         datetime.setTimeInMillis(unixtimestamp * 1000);
 
         return datetime;
     }
 
-    private ByteBuffer unmarshallBinary(int data) throws FrpcDataException {
+    private byte[] unmarshallBinary(int data) throws FrpcDataException {
         int octets = data & FrpcInternals.MASK_ADD;
         int length = 0;
         for (int i = 0; i <= octets; i++) {
             length |= read() << (i << 3);
         }
-        ByteBuffer binary = null;
-        if (length > 0) {
-            binary = ByteBuffer.allocate(length);
-            for (int i = 0; i < length; i++) {
-                binary.put((byte) read());
-            }
-
+        byte[] binary = new byte[length];
+        for (int i = 0; i < length; i++) {
+            binary[i] = (byte) read();
         }
+
         return binary;
     }
 

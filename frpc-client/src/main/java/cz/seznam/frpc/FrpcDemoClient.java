@@ -1,47 +1,81 @@
 package cz.seznam.frpc;
 
 import cz.seznam.frpc.client.FrpcClient;
-import cz.seznam.frpc.client.FrpcConfig;
+import org.eclipse.jetty.client.HttpClient;
 
-import java.util.Arrays;
-import java.util.HashMap;
+import java.net.URL;
+import java.util.*;
+import java.util.concurrent.LinkedBlockingDeque;
 
 public class FrpcDemoClient
 {
-    public static void main( String[] args )
-    {
-        // Configuration of FastRPC connection
-        FrpcConfig frpcConfig = new FrpcConfig("localhost", 9898, "/RPC2");
-
+    public static void main( String[] args ) throws Exception {
+        URL url = new URL("http://localhost:9898/RPC2");
+        HttpClient httpClient = new HttpClient();
         // Creation of FastRPC client
-        FrpcClient frpcClient = new FrpcClient(frpcConfig);
+        FrpcClient client = new FrpcClient(url, httpClient);
+
 
         try {
-            // Calling of remote method via FastRPC client
-            // Method name: indexOf
-            // Parameters: the string to search, the substring to search for
-            // Returns: the array of indexes of occurrences of the specified substring
-            Object stringResult = frpcClient.call("stringOperations.indexOf", "testStringValue", "String");
-            System.out.println(FrpcLog.frpcToString(stringResult));
+            // unwrapping takes care of single-valued responses
+            Integer sum = client.call("numberOperations.add", 3, 2).unwrap().as(Integer.class);
+            System.out.println(sum);
 
-            Object numberResult = frpcClient.call("numberOperations.multiply", 3, 2);
-            System.out.println(FrpcLog.frpcToString(numberResult));
+            // and there is even a shorthand for it
+            Integer sum2 = client.callAndUnwrap("numberOperations.add", 3, 2).as(Integer.class);
+            System.out.println(sum2);
 
-            Object arraysResult = frpcClient.call("arrayOperations.indexOf", 1, new int[] {5, 6, 7, 2, 1, 6});
-            System.out.println(FrpcLog.frpcToString(arraysResult));
+            // yet it's not mandatory, this is equivalent to previous call
+            Integer sum3 = client.call("numberOperations.add", 3, 2).asStruct().get("result").as(Integer.class);
+            System.out.println(sum3);
 
-            Object listResult = frpcClient.call("collectionOperations.removeNulls", Arrays.asList("x", null, "y", null, "z", null));
-            System.out.println(FrpcLog.frpcToString(listResult));
+            // nested structures can be retrieved using "get" method of structured result
+            // "getStruct" comes in handy when the value to get is again a structure
+            Integer multiplication = client.call("numberOperations.multiply", 3, 2)
+                    .asStruct().getStruct("result").get("multiplication").as(Integer.class);
+            System.out.println(multiplication);
 
-            Object setResult = frpcClient.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"));
-            System.out.println(FrpcLog.frpcToString(setResult));
+            // nothing special here, just a call...
+            Integer index = client.call("arrayOperations.indexOf", 1, new int[] {5, 6, 7, 2, 1, 6})
+                    .unwrap().as(Integer.class);
+            System.out.println(index);
 
-            Object mapResult = frpcClient.call("collectionOperations.putIfAbsent", new HashMap<>(), "test", "someValue");
-            System.out.println(FrpcLog.frpcToString(mapResult));
-        } catch (FrpcConnectionException e) {
-            e.printStackTrace();
-        } catch (FrpcDataException e) {
-            e.printStackTrace();
+            // with asArrayOf one can specify type of an array so that it can be returned in a type-safe way
+            String[] withoutNulls = client.call("collectionOperations.removeNulls", Arrays.asList("x", null, "y", null, "z", null))
+                    .unwrap().asArrayOf(String.class).asArray();
+            System.out.println(Arrays.toString(withoutNulls));
+
+            // arrays can be implicitly converted to Lists...
+            List<String> sorted = client.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"))
+                    .unwrap().asArrayOf(String.class).asList();
+            System.out.println(sorted);
+
+            // ... Sets ...
+            Set<String> sortedAsSet = client.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"))
+                    .unwrap().asArrayOf(String.class).asSet();
+            System.out.println(sortedAsSet);
+
+            // ... and pretty much any other collection type
+            LinkedBlockingDeque<String> sortedAsDequeue = client.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"))
+                    .unwrap().asArrayOf(String.class).asCollection(LinkedBlockingDeque::new);
+            System.out.println(sortedAsDequeue);
+
+            // maps can be retrieved from structured response directly
+            Map<String, Object> map = client.call("collectionOperations.putIfAbsent", new HashMap<>(), "test", "someValue")
+                    .unwrap().asStruct().asMap();
+            System.out.println(map);
+
+            // binary data are just binary
+            String binaryResult = client.call("binaryOperations.bytesToString", (Object) "Binary data are just so ".getBytes())
+                    .unwrap().as(String.class);
+            System.out.print(binaryResult);
+
+            byte[] binaryResult2 = client.call("binaryOperations.stringToBytes", "goddamn binary!")
+                    .unwrap().as(byte[].class);
+            System.out.println(new String(binaryResult2));
+
+        } finally {
+            httpClient.stop();
         }
     }
 }

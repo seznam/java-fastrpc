@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 
 
 /**
@@ -12,8 +11,6 @@ import java.util.logging.Logger;
  */
 public class FrpcHandlerMapping {
 
-    // TODO: add dependency to SLF4J or something like that
-    private static final Logger LOGGER = Logger.getAnonymousLogger();
 
     private Map<String, FrpcMethodHandler> mapping = new HashMap<>();
 

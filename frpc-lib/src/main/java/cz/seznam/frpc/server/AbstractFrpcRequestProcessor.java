@@ -1,7 +1,9 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.FrpcBinUnmarshaller;
+import cz.seznam.frpc.FrpcUnmarshaller;
 import org.apache.commons.lang3.ClassUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -13,7 +15,10 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractFrpcRequestProcessor implements FrpcRequestProcessor {
 
-    protected Object[] unmarshallMethodArguments(String requestMethodName, Class<?>[] methodParameterTypes, FrpcBinUnmarshaller unmarshaller) {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractFrpcRequestProcessor.class);
+
+    protected Object[] unmarshallMethodArguments(String requestMethodName, Class<?>[] methodParameterTypes, FrpcUnmarshaller unmarshaller) {
+        LOGGER.debug("Trying to unmarshall arguments of method \"{}\" according to these parameter types: {}", requestMethodName, methodParameterTypes);
         // try to unmarshall as many objects as there are argument types
         Object[] arguments = new Object[methodParameterTypes.length];
         for(int i = 0; i < arguments.length; i++) {
@@ -21,12 +26,14 @@ public abstract class AbstractFrpcRequestProcessor implements FrpcRequestProcess
             Object argument;
             try {
                 argument = unmarshaller.unmarshallObject();
+                LOGGER.debug("Unmarshalled {} as method argument #{}", argument, i + 1);
             } catch (Exception e) {
                 throw new IllegalStateException(getMethodDescription(requestMethodName, methodParameterTypes) + " There was an error while reading parameter #" + (i + 1), e);
             }
             // if the argument is null, just store it in the arguments array
             if(argument == null) {
                 arguments[i] = null;
+                LOGGER.debug("Setting null as argument #{}", i + 1);
             } else {
                 // otherwise try to convert the argument into something compatible with current parameter type
                 Object convertedArgument = convertToCompatibleInstance(methodParameterTypes[i], argument);
@@ -38,6 +45,7 @@ public abstract class AbstractFrpcRequestProcessor implements FrpcRequestProcess
                 }
                 // add it to the array of parameters
                 arguments[i] = convertedArgument;
+                LOGGER.debug("Setting {} as argument #{}", convertedArgument, i + 1);
             }
         }
         // return unmarshalled arguments
@@ -51,25 +59,30 @@ public abstract class AbstractFrpcRequestProcessor implements FrpcRequestProcess
     }
 
     protected Object convertToCompatibleInstance(Class<?> methodParameterType, Object argument) {
-        // get boxed method parameter type
+        LOGGER.debug("Trying to convert argument {} into something compatible with {}", argument, methodParameterType);
+        // getResult boxed method parameter type
         Class<?> boxedMethodParameterType = ClassUtils.primitiveToWrapper(methodParameterType);
         // check if argument is instance of given type or if they are compatible numbers
         if(boxedMethodParameterType.isInstance(argument)) {
+            LOGGER.debug("Argument {} is type-compatible with required method parameter type {}, no conversion needed.", argument, methodParameterType);
             return argument;
         }
-        // get boxed type of the argument
+        // getResult boxed type of the argument
         Class<?> boxedArgumentType = ClassUtils.primitiveToWrapper(argument.getClass());
         // check for compatible integer and floating point types
         if((boxedMethodParameterType == Long.class && boxedArgumentType == Integer.class)
                 || (boxedMethodParameterType == Double.class && boxedArgumentType == Float.class)) {
+            LOGGER.debug("Argument {} is numeric type with lower precision than method parameter type {}, relying on implicit widening conversion.", argument, methodParameterType);
             return argument;
         }
         // if the method parameter type is a list and argument is an array, convert it into list
         if(boxedMethodParameterType == List.class && boxedArgumentType == Object[].class) {
+            LOGGER.debug("Argument {} is an object array, converting it into List.", argument, methodParameterType);
             return Arrays.stream((Object[]) argument).collect(Collectors.toList());
         }
-        // if the method parameter type is a list and argument is an array, convert it into list
+        // if the method parameter type is a set and argument is an array, convert it into list
         if(boxedMethodParameterType == Set.class && boxedArgumentType == Object[].class) {
+            LOGGER.debug("Argument {} is an object array, converting it into Set.", argument, methodParameterType);
             return Arrays.stream((Object[]) argument).collect(Collectors.toSet());
         }
         // if none of the above is true, given argument is not compatible with given type

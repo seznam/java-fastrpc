@@ -6,19 +6,20 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.*;
 
-public class FrpcBinMarshaller {
+public class FrpcMarshaller {
 
-    final String LOGTAG = "FRPC";
+    protected OutputStream outputStream;
 
-    private OutputStream writer;
+    protected FrpcMarshaller() {
+    }
 
-    public FrpcBinMarshaller(OutputStream w) {
-        writer = w;
+    public FrpcMarshaller(OutputStream outputStream) {
+        this.outputStream = Objects.requireNonNull(outputStream);
     }
 
     public void packMagic() throws FrpcDataException {
         try {
-            writer.write(FrpcInternals.MAGIC_NUMBER);
+            outputStream.write(FrpcInternals.MAGIC_NUMBER);
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -26,9 +27,9 @@ public class FrpcBinMarshaller {
 
     public void packMethodCall(String methodName) throws FrpcDataException {
         try {
-            writer.write(FrpcInternals.TYPE_METHOD_CALL);
-            writer.write(methodName.length());
-            writer.write(methodName.getBytes());
+            outputStream.write(FrpcInternals.TYPE_METHOD_CALL);
+            outputStream.write(methodName.length());
+            outputStream.write(methodName.getBytes());
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -36,7 +37,7 @@ public class FrpcBinMarshaller {
 
     public void packMethodResponse() throws FrpcDataException {
         try {
-            writer.write(FrpcInternals.TYPE_METHOD_RESPONSE);
+            outputStream.write(FrpcInternals.TYPE_METHOD_RESPONSE);
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -48,10 +49,10 @@ public class FrpcBinMarshaller {
             octets++;
         }
         try {
-            writer.write(FrpcInternals.TYPE_ARRAY | octets);
+            outputStream.write(FrpcInternals.TYPE_ARRAY | octets);
 
             for (int i = 0; i <= octets; i++) {
-                writer.write((numOfItems >> (i << 3)) & 0xff);
+                outputStream.write((numOfItems >> (i << 3)) & 0xff);
             }
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
@@ -79,12 +80,12 @@ public class FrpcBinMarshaller {
 
     private void doPackBinary(byte[] data, int size, int octets) throws FrpcDataException {
         try {
-            writer.write(FrpcInternals.TYPE_BINARY | octets);
+            outputStream.write(FrpcInternals.TYPE_BINARY | octets);
 
             for (int i = 0; i <= octets; i++) {
-                writer.write((size >> (i << 3)) & 0xff);
+                outputStream.write((size >> (i << 3)) & 0xff);
             }
-            writer.write(data);
+            outputStream.write(data);
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -92,7 +93,7 @@ public class FrpcBinMarshaller {
 
     public void packBool(boolean value) throws FrpcDataException {
         try {
-            writer.write(FrpcInternals.TYPE_BOOL | (value ? 1 : 0));
+            outputStream.write(FrpcInternals.TYPE_BOOL | (value ? 1 : 0));
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -107,18 +108,18 @@ public class FrpcBinMarshaller {
         int s4 = ((day & 0x1f) >> 4) | ((month & 0x0f) << 1) | ((year & 0x07) << 5);
         int s5 = ((year & 0x07f8) >> 3);
         try {
-            writer.write(FrpcInternals.TYPE_DATETIME);
-            writer.write(timeZone);
+            outputStream.write(FrpcInternals.TYPE_DATETIME);
+            outputStream.write(timeZone);
 
             for (int i = 0; i <= 3; i++) {
-                writer.write(timeStamp >> (i << 3) & 0xff);
+                outputStream.write(timeStamp >> (i << 3) & 0xff);
             }
 
-            writer.write(s1 & 0xff);
-            writer.write(s2 & 0xff);
-            writer.write(s3 & 0xff);
-            writer.write(s4 & 0xff);
-            writer.write(s5 & 0xff);
+            outputStream.write(s1 & 0xff);
+            outputStream.write(s2 & 0xff);
+            outputStream.write(s3 & 0xff);
+            outputStream.write(s4 & 0xff);
+            outputStream.write(s5 & 0xff);
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -128,10 +129,10 @@ public class FrpcBinMarshaller {
     public void packDouble(double value) throws FrpcDataException {
         long binaryValue = Double.doubleToLongBits(value);
         try {
-            writer.write(FrpcInternals.TYPE_DOUBLE);
+            outputStream.write(FrpcInternals.TYPE_DOUBLE);
 
             for (int i = 0; i < 8; i++) {
-                writer.write((int) ((binaryValue >> (i << 3)) & 0xff));
+                outputStream.write((int) ((binaryValue >> (i << 3)) & 0xff));
             }
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
@@ -153,10 +154,10 @@ public class FrpcBinMarshaller {
             octets++;
         }
         try {
-            writer.write(typeOfInt | octets);
+            outputStream.write(typeOfInt | octets);
 
             for (int i = 0; i <= octets; i++) {
-                writer.write(value >> (i << 3) & 0xff);
+                outputStream.write(value >> (i << 3) & 0xff);
             }
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
@@ -183,10 +184,10 @@ public class FrpcBinMarshaller {
             octets++;
         }
         try {
-            writer.write(typeOfInt | octets);
+            outputStream.write(typeOfInt | octets);
 
             for (int i = 0; i <= octets; i++) {
-                writer.write((int) (value >> (i << 3) & 0xff));
+                outputStream.write((int) (value >> (i << 3) & 0xff));
             }
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
@@ -206,12 +207,12 @@ public class FrpcBinMarshaller {
             octets++;
         }
         try {
-            writer.write(FrpcInternals.TYPE_STRING | octets);
+            outputStream.write(FrpcInternals.TYPE_STRING | octets);
 
             for (int i = 0; i <= octets; i++) {
-                writer.write((stringLength >> (i << 3)) & 0xff);
+                outputStream.write((stringLength >> (i << 3)) & 0xff);
             }
-            writer.write(decodedString);
+            outputStream.write(decodedString);
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -223,10 +224,10 @@ public class FrpcBinMarshaller {
             octets++;
         }
         try {
-            writer.write(FrpcInternals.TYPE_STRUCT | octets);
+            outputStream.write(FrpcInternals.TYPE_STRUCT | octets);
 
             for (int i = 0; i <= octets; i++) {
-                writer.write((numOfItems >> (i << 3)) & 0xff);
+                outputStream.write((numOfItems >> (i << 3)) & 0xff);
             }
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
@@ -235,9 +236,9 @@ public class FrpcBinMarshaller {
 
     public void packStructMember(String memeberName) throws FrpcDataException {
         try {
-            writer.write(memeberName.length());
+            outputStream.write(memeberName.length());
 
-            writer.write(memeberName.getBytes());
+            outputStream.write(memeberName.getBytes());
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -245,7 +246,7 @@ public class FrpcBinMarshaller {
 
     public void packNull() throws FrpcDataException {
         try {
-            writer.write(FrpcInternals.TYPE_NULL);
+            outputStream.write(FrpcInternals.TYPE_NULL);
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -298,9 +299,9 @@ public class FrpcBinMarshaller {
         } else if (item instanceof Double) {
             packDouble((Double) item);
         } else if (item instanceof Integer) {
-            packInt((int) ((Integer) item));
+            packInt((Integer) item);
         } else if (item instanceof Long) {
-            packInt((long) ((Long) item));
+            packInt((Long) item);
         } else if (item instanceof String) {
             packString((String) item);
         } else if (item instanceof ByteBuffer) {
@@ -311,22 +312,19 @@ public class FrpcBinMarshaller {
             @SuppressWarnings("unchecked")
             Map<String, Object> struct = (Map<String, Object>) item;
             packStruct(struct.size());
-            Set<Map.Entry<String, Object>> items = struct.entrySet();
-            Iterator<Map.Entry<String, Object>> iter = items.iterator();
-            while (iter.hasNext()) {
-                Map.Entry<String, Object> entry = iter.next();
+            for (Map.Entry<String, Object> entry : struct.entrySet()) {
                 packStructMember(entry.getKey());
                 packItem(entry.getValue());
             }
-        } else if (item instanceof GregorianCalendar) {
-            GregorianCalendar date = (GregorianCalendar) item;
+        } else if (item instanceof Calendar) {
+            Calendar date = (Calendar) item;
             packDateTime((new Long(date.getTimeInMillis() / 1000)).intValue(),
-                    date.get(GregorianCalendar.DAY_OF_WEEK) - 1, date.get(GregorianCalendar.YEAR)
+                    date.get(Calendar.DAY_OF_WEEK) - 1, date.get(Calendar.YEAR)
                             - FrpcInternals.DATE_YEAR_OFFSET,
-                    date.get(GregorianCalendar.MONTH) + 1, date.get(GregorianCalendar.DATE),
-                    date.get(GregorianCalendar.HOUR_OF_DAY), date.get(GregorianCalendar.MINUTE),
-                    date.get(GregorianCalendar.SECOND), date.get(GregorianCalendar.ZONE_OFFSET)
-                            / 1000 / 60 / 15 + date.get(GregorianCalendar.DST_OFFSET) / 1000 / 60
+                    date.get(Calendar.MONTH) + 1, date.get(Calendar.DATE),
+                    date.get(Calendar.HOUR_OF_DAY), date.get(Calendar.MINUTE),
+                    date.get(Calendar.SECOND), date.get(Calendar.ZONE_OFFSET)
+                            / 1000 / 60 / 15 + date.get(Calendar.DST_OFFSET) / 1000 / 60
                             / 15);
         } else {
             throw new FrpcDataException(

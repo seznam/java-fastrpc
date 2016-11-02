@@ -35,9 +35,9 @@ public class MethodMetaData {
     public static MethodMetaData fromMethod(Method method) {
         Objects.requireNonNull(method, "Method must not be null");
 
-        // get FrpcResponse annotation of this method
+        // getResult FrpcResponse annotation of this method
         FrpcResponse frpcResponse = method.getAnnotation(FrpcResponse.class);
-        // and try to get responseKey value out of it
+        // and try to getResult responseKey value out of it
         String responseKey = frpcResponse == null ? null : frpcResponse.key();
         // create MethodMetaData and return it
         return new MethodMetaData(method.getParameterTypes(), method.getReturnType(), responseKey);

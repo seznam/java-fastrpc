@@ -14,7 +14,7 @@ public class FrpcTypes {
 
     static {
         Set<Class<?>> compatibleClasses = new HashSet<>(
-                Arrays.asList(Integer.class, Long.class, Float.class, Double.class, String.class, Map.class, List.class, Set.class, Calendar.class, Object.class, Object[].class, ByteBuffer.class));
+                Arrays.asList(Integer.class, Long.class, Float.class, Double.class, String.class, Map.class, List.class, Set.class, Calendar.class, Object.class, byte[].class, Object[].class, ByteBuffer.class));
         COMPATIBLE_TYPES = Collections.unmodifiableSet(compatibleClasses);
     }
 

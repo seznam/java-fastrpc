@@ -1,6 +1,6 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.FrpcBinMarshaller;
+import cz.seznam.frpc.FrpcMarshaller;
 import cz.seznam.frpc.FrpcDataException;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.server.Request;
@@ -64,7 +64,7 @@ public class FrpcRequestHandler extends AbstractHandler {
 
     private FrpcRequestProcessingResult doHandle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
             throws Exception {
-        // get the request body
+        // getResult the request body
         InputStream is = request.getInputStream();
         // process it using the request processor
         return frpcRequestProcessor.process(is);
@@ -73,7 +73,7 @@ public class FrpcRequestHandler extends AbstractHandler {
     private void handleResponse(Object result, HttpServletResponse response) throws FrpcDataException, IOException {
         // marshall response
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        FrpcBinMarshaller marshaller = new FrpcBinMarshaller(baos);
+        FrpcMarshaller marshaller = new FrpcMarshaller(baos);
         marshaller.packMagic();
         marshaller.packItem(result);
         // set it to the response

@@ -13,7 +13,7 @@ public class DefaultFrpcResultTransformer extends AbstractFrpcResultTransformer 
     @SuppressWarnings("unchecked")
     public Map<String, Object> transformOkResponse(FrpcRequestProcessingResult frpcRequestProcessingResult) {
         Map<String, Object> result;
-        // get the actual method call result and the key to map the result to
+        // getResult the actual method call result and the key to map the result to
         Object methodResult = frpcRequestProcessingResult.getMethodResult();
         String methodResponseKey = frpcRequestProcessingResult.getMethodResponseKey();
         // if the methodResponseKey is empty, it's the same as null - we treat it as not set
