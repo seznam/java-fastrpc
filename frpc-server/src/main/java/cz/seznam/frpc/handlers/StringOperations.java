@@ -1,6 +1,6 @@
 package cz.seznam.frpc.handlers;
 
-import cz.seznam.frpc.FrpcResponse;
+import cz.seznam.frpc.server.annotations.FrpcResponse;
 
 import java.util.LinkedList;
 import java.util.List;

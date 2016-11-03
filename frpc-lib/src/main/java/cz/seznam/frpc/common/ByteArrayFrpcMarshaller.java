@@ -1,4 +1,4 @@
-package cz.seznam.frpc;
+package cz.seznam.frpc.common;
 
 import java.io.ByteArrayOutputStream;
 

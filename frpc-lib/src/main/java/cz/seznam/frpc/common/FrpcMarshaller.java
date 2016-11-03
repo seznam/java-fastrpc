@@ -1,4 +1,4 @@
-package cz.seznam.frpc;
+package cz.seznam.frpc.common;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -19,7 +19,7 @@ public class FrpcMarshaller {
 
     public void packMagic() throws FrpcDataException {
         try {
-            outputStream.write(FrpcInternals.MAGIC_NUMBER);
+            outputStream.write(FrpcConstants.MAGIC_NUMBER);
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -27,7 +27,7 @@ public class FrpcMarshaller {
 
     public void packMethodCall(String methodName) throws FrpcDataException {
         try {
-            outputStream.write(FrpcInternals.TYPE_METHOD_CALL);
+            outputStream.write(FrpcConstants.TYPE_METHOD_CALL);
             outputStream.write(methodName.length());
             outputStream.write(methodName.getBytes());
         } catch (IOException e) {
@@ -37,7 +37,7 @@ public class FrpcMarshaller {
 
     public void packMethodResponse() throws FrpcDataException {
         try {
-            outputStream.write(FrpcInternals.TYPE_METHOD_RESPONSE);
+            outputStream.write(FrpcConstants.TYPE_METHOD_RESPONSE);
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -49,7 +49,7 @@ public class FrpcMarshaller {
             octets++;
         }
         try {
-            outputStream.write(FrpcInternals.TYPE_ARRAY | octets);
+            outputStream.write(FrpcConstants.TYPE_ARRAY | octets);
 
             for (int i = 0; i <= octets; i++) {
                 outputStream.write((numOfItems >> (i << 3)) & 0xff);
@@ -80,7 +80,7 @@ public class FrpcMarshaller {
 
     private void doPackBinary(byte[] data, int size, int octets) throws FrpcDataException {
         try {
-            outputStream.write(FrpcInternals.TYPE_BINARY | octets);
+            outputStream.write(FrpcConstants.TYPE_BINARY | octets);
 
             for (int i = 0; i <= octets; i++) {
                 outputStream.write((size >> (i << 3)) & 0xff);
@@ -93,7 +93,7 @@ public class FrpcMarshaller {
 
     public void packBool(boolean value) throws FrpcDataException {
         try {
-            outputStream.write(FrpcInternals.TYPE_BOOL | (value ? 1 : 0));
+            outputStream.write(FrpcConstants.TYPE_BOOL | (value ? 1 : 0));
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -108,7 +108,7 @@ public class FrpcMarshaller {
         int s4 = ((day & 0x1f) >> 4) | ((month & 0x0f) << 1) | ((year & 0x07) << 5);
         int s5 = ((year & 0x07f8) >> 3);
         try {
-            outputStream.write(FrpcInternals.TYPE_DATETIME);
+            outputStream.write(FrpcConstants.TYPE_DATETIME);
             outputStream.write(timeZone);
 
             for (int i = 0; i <= 3; i++) {
@@ -129,7 +129,7 @@ public class FrpcMarshaller {
     public void packDouble(double value) throws FrpcDataException {
         long binaryValue = Double.doubleToLongBits(value);
         try {
-            outputStream.write(FrpcInternals.TYPE_DOUBLE);
+            outputStream.write(FrpcConstants.TYPE_DOUBLE);
 
             for (int i = 0; i < 8; i++) {
                 outputStream.write((int) ((binaryValue >> (i << 3)) & 0xff));
@@ -141,13 +141,13 @@ public class FrpcMarshaller {
 
     public void packInt(int value) throws FrpcDataException {
         int octets = 0;
-        byte typeOfInt = FrpcInternals.TYPE_INT_POS;
+        byte typeOfInt = FrpcConstants.TYPE_INT_POS;
         if (value < 0) {
             if (value == Integer.MIN_VALUE) {
                 throw new FrpcDataException(
                         "Exception in frpc packInt: Value is smaller then minimal value");
             }
-            typeOfInt = FrpcInternals.TYPE_INT_NEG;
+            typeOfInt = FrpcConstants.TYPE_INT_NEG;
             value = -value;
         }
         while ((value >> (octets << 3)) > 255 && octets < 7) {
@@ -166,13 +166,13 @@ public class FrpcMarshaller {
 
     public void packInt(long value) throws FrpcDataException {
         int octets = 0;
-        byte typeOfInt = FrpcInternals.TYPE_INT_POS;
+        byte typeOfInt = FrpcConstants.TYPE_INT_POS;
         if (value < 0) {
             if (value == Long.MIN_VALUE) {
                 throw new FrpcDataException(
                         "Exception in frpc packInt: Value is smaller then minimal value");
             }
-            typeOfInt = FrpcInternals.TYPE_INT_NEG;
+            typeOfInt = FrpcConstants.TYPE_INT_NEG;
             value = -value;
         }
         long shiftedVal = value;
@@ -207,7 +207,7 @@ public class FrpcMarshaller {
             octets++;
         }
         try {
-            outputStream.write(FrpcInternals.TYPE_STRING | octets);
+            outputStream.write(FrpcConstants.TYPE_STRING | octets);
 
             for (int i = 0; i <= octets; i++) {
                 outputStream.write((stringLength >> (i << 3)) & 0xff);
@@ -224,7 +224,7 @@ public class FrpcMarshaller {
             octets++;
         }
         try {
-            outputStream.write(FrpcInternals.TYPE_STRUCT | octets);
+            outputStream.write(FrpcConstants.TYPE_STRUCT | octets);
 
             for (int i = 0; i <= octets; i++) {
                 outputStream.write((numOfItems >> (i << 3)) & 0xff);
@@ -246,7 +246,7 @@ public class FrpcMarshaller {
 
     public void packNull() throws FrpcDataException {
         try {
-            outputStream.write(FrpcInternals.TYPE_NULL);
+            outputStream.write(FrpcConstants.TYPE_NULL);
         } catch (IOException e) {
             throw new FrpcDataException("IO exception when sending frpc request: " + e);
         }
@@ -320,16 +320,15 @@ public class FrpcMarshaller {
             Calendar date = (Calendar) item;
             packDateTime((new Long(date.getTimeInMillis() / 1000)).intValue(),
                     date.get(Calendar.DAY_OF_WEEK) - 1, date.get(Calendar.YEAR)
-                            - FrpcInternals.DATE_YEAR_OFFSET,
+                            - FrpcConstants.DATE_YEAR_OFFSET,
                     date.get(Calendar.MONTH) + 1, date.get(Calendar.DATE),
                     date.get(Calendar.HOUR_OF_DAY), date.get(Calendar.MINUTE),
                     date.get(Calendar.SECOND), date.get(Calendar.ZONE_OFFSET)
                             / 1000 / 60 / 15 + date.get(Calendar.DST_OFFSET) / 1000 / 60
                             / 15);
         } else {
-            throw new FrpcDataException(
-                    "Errorn in frpc bin marschaller: Uknown type to marschall!!! - "
-                            + item.toString());
+            throw new FrpcDataException("Error while marshalling object " + item +
+                    ", type " + item.getClass() + " is not a supported FRPC type");
         }
     }
 }

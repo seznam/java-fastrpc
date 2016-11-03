@@ -1,4 +1,4 @@
-package cz.seznam.frpc;
+package cz.seznam.frpc.client;
 
 /**
  * @author David Moidl david.moidl@firma.seznam.cz

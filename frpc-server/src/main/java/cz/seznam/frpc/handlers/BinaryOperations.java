@@ -1,7 +1,7 @@
 package cz.seznam.frpc.handlers;
 
-import cz.seznam.frpc.FrpcName;
-import cz.seznam.frpc.FrpcResponse;
+import cz.seznam.frpc.server.annotations.FrpcName;
+import cz.seznam.frpc.server.annotations.FrpcResponse;
 
 /**
  * @author David Moidl david.moidl@firma.seznam.cz
@@ -18,6 +18,12 @@ public class BinaryOperations {
     @FrpcResponse(key = "result")
     public byte[] toBytes(String text) {
         return text.getBytes();
+    }
+
+    @FrpcName("/dev/null")
+    @FrpcResponse(key = "result")
+    public Void blackhole(Object whatever) {
+        return null;
     }
 
 }

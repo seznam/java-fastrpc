@@ -1,4 +1,4 @@
-package cz.seznam.frpc;
+package cz.seznam.frpc.common;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,7 +39,7 @@ public class FrpcUtils {
         return error(statusMessage);
     }
 
-    private static Map<String, Object> response(int statusCode, String statusMessage) {
+    public static Map<String, Object> response(int statusCode, String statusMessage) {
         Map<String, Object> response = new HashMap<>();
         response.put(STATUS_KEY, statusCode);
         response.put(STATUS_MESSAGE_KEY, statusMessage);

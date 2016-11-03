@@ -1,13 +1,14 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.FrpcUtils;
+import cz.seznam.frpc.common.FrpcUtils;
+import org.eclipse.jetty.http.HttpStatus;
 
 import java.util.Map;
 
 /**
  * @author David Moidl david.moidl@firma.seznam.cz
  */
-public class DefaultFrpcResultTransformer extends AbstractFrpcResultTransformer {
+public class DefaultFrpcResultTransformer implements FrpcResultTransformer {
 
     @Override
     @SuppressWarnings("unchecked")
@@ -60,6 +61,11 @@ public class DefaultFrpcResultTransformer extends AbstractFrpcResultTransformer 
     public Map<String, Object> transformErrorResponse(Exception exception) {
         // create response by wrapping an exception
         return FrpcUtils.wrapException(exception);
+    }
+
+    protected void ensureContainsMandatoryValues(Map<String, Object> map) {
+        map.putIfAbsent(FrpcUtils.STATUS_KEY, HttpStatus.OK_200);
+        map.putIfAbsent(FrpcUtils.STATUS_MESSAGE_KEY, FrpcUtils.DEFAULT_OK_STATUS_MESSAGE);
     }
 
 }

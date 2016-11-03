@@ -1,9 +1,9 @@
 package cz.seznam.frpc.handlers;
 
-import cz.seznam.frpc.FrpcIgnore;
-import cz.seznam.frpc.FrpcName;
-import cz.seznam.frpc.FrpcResponse;
-import cz.seznam.frpc.FrpcUtils;
+import cz.seznam.frpc.server.annotations.FrpcIgnore;
+import cz.seznam.frpc.server.annotations.FrpcName;
+import cz.seznam.frpc.server.annotations.FrpcResponse;
+import cz.seznam.frpc.common.FrpcUtils;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;

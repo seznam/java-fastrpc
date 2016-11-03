@@ -1,6 +1,6 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.FrpcUnmarshaller;
+import cz.seznam.frpc.common.FrpcUnmarshaller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,7 +11,7 @@ import java.util.Objects;
 /**
  * @author David Moidl david.moidl@firma.seznam.cz
  */
-public class HandlerUsingFrpcRequestProcesor extends AbstractFrpcRequestProcessor {
+public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HandlerUsingFrpcRequestProcesor.class);
 
@@ -72,7 +72,7 @@ public class HandlerUsingFrpcRequestProcesor extends AbstractFrpcRequestProcesso
         Class<?>[] parameterTypes = methodMetaData.getParameterTypes();
 
         // try to unmarshall arguments according to method parameter types
-        Object[] arguments = unmarshallMethodArguments(requestMethodName, parameterTypes, unmarshaller);
+        Object[] arguments = FrpcServerUtils.unmarshallMethodArguments(requestMethodName, parameterTypes, unmarshaller);
 
         // call the method handler
         Object methodResult = methodHandler.getFrpcHandler().handleRequest(handlerMethodName, arguments);

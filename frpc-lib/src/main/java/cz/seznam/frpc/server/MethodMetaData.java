@@ -1,6 +1,6 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.FrpcResponse;
+import cz.seznam.frpc.server.annotations.FrpcResponse;
 
 import java.lang.reflect.Method;
 import java.util.Objects;

@@ -1,6 +1,6 @@
-package cz.seznam.frpc;
+package cz.seznam.frpc.common;
 
-class FrpcInternals {
+class FrpcConstants {
 
     final static byte TYPE_BOOL = 0x10;
 

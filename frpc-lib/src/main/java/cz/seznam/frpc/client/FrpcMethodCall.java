@@ -1,9 +1,8 @@
 package cz.seznam.frpc.client;
 
-import cz.seznam.frpc.ByteArrayFrpcMarshaller;
-import cz.seznam.frpc.FrpcCallException;
-import cz.seznam.frpc.FrpcDataException;
-import cz.seznam.frpc.FrpcUnmarshaller;
+import cz.seznam.frpc.common.ByteArrayFrpcMarshaller;
+import cz.seznam.frpc.common.FrpcDataException;
+import cz.seznam.frpc.common.FrpcUnmarshaller;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;

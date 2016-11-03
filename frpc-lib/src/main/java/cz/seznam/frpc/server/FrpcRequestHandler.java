@@ -1,7 +1,7 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.FrpcMarshaller;
-import cz.seznam.frpc.FrpcDataException;
+import cz.seznam.frpc.common.FrpcMarshaller;
+import cz.seznam.frpc.common.FrpcDataException;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;

@@ -1,4 +1,4 @@
-package cz.seznam.frpc;
+package cz.seznam.frpc.common;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -63,7 +63,7 @@ public class FrpcUnmarshaller {
     }
 
     private String unmarshallString(int data) throws FrpcDataException {
-        int octets = data & FrpcInternals.MASK_ADD;
+        int octets = data & FrpcConstants.MASK_ADD;
         int length = 0;
         for (int i = 0; i <= octets; i++) {
             length |= read() << (i << 3);
@@ -97,7 +97,7 @@ public class FrpcUnmarshaller {
     }
 
     private Number unmarshallIntegralType(int data, boolean positive) throws FrpcDataException {
-        int octets = data & FrpcInternals.MASK_ADD;
+        int octets = data & FrpcConstants.MASK_ADD;
         long value = 0;
 
         for (int i = 0; i <= octets; i++) {
@@ -121,7 +121,7 @@ public class FrpcUnmarshaller {
     }
 
     private Object[] unmarshallArray(int data) throws FrpcDataException {
-        int octets = data & FrpcInternals.MASK_ADD;
+        int octets = data & FrpcConstants.MASK_ADD;
         int length = 0;
         for (int i = 0; i <= octets; i++) {
             length |= read() << (i << 3);
@@ -134,7 +134,7 @@ public class FrpcUnmarshaller {
     }
 
     private Map<String, Object> unmarshallStruct(int data) throws FrpcDataException {
-        int octets = data & FrpcInternals.MASK_ADD;
+        int octets = data & FrpcConstants.MASK_ADD;
         int length = 0;
         for (int i = 0; i <= octets; i++) {
             length |= read() << (i << 3);
@@ -194,7 +194,7 @@ public class FrpcUnmarshaller {
 
         data = read();
         year |= ((data << 3));
-        year += FrpcInternals.DATE_YEAR_OFFSET;
+        year += FrpcConstants.DATE_YEAR_OFFSET;
 
         Calendar datetime = Calendar.getInstance();
 
@@ -204,7 +204,7 @@ public class FrpcUnmarshaller {
     }
 
     private byte[] unmarshallBinary(int data) throws FrpcDataException {
-        int octets = data & FrpcInternals.MASK_ADD;
+        int octets = data & FrpcConstants.MASK_ADD;
         int length = 0;
         for (int i = 0; i <= octets; i++) {
             length |= read() << (i << 3);
@@ -221,12 +221,12 @@ public class FrpcUnmarshaller {
         int data = read();
 
         // 0xCA 0x11 = CALL
-        if (data == FrpcInternals.MAGIC_NUMBER_FIRST) {
+        if (data == FrpcConstants.MAGIC_NUMBER_FIRST) {
             data = read(3); // major version | minor version | 8+3
         }
 
         // 01101 000 - method call
-        if ((data & FrpcInternals.MASK_TYPE) == FrpcInternals.TYPE_METHOD_CALL) {
+        if ((data & FrpcConstants.MASK_TYPE) == FrpcConstants.TYPE_METHOD_CALL) {
             data = read(); // name size
             return readMethodName(data);
         }
@@ -246,49 +246,49 @@ public class FrpcUnmarshaller {
         Object result;
         int data = read();
 
-        if (data == FrpcInternals.MAGIC_NUMBER_FIRST) {
+        if (data == FrpcConstants.MAGIC_NUMBER_FIRST) {
             data = read(3);
         }
-        switch (data & FrpcInternals.MASK_TYPE) {
-            case FrpcInternals.TYPE_METHOD_RESPONSE:
+        switch (data & FrpcConstants.MASK_TYPE) {
+            case FrpcConstants.TYPE_METHOD_RESPONSE:
                 result = unmarshallObject();
                 break;
-            case FrpcInternals.TYPE_FAULT:
+            case FrpcConstants.TYPE_FAULT:
                 result = unmarshallFault(data);
                 break;
-            case FrpcInternals.TYPE_STRING:
+            case FrpcConstants.TYPE_STRING:
                 result = unmarshallString(data);
                 break;
-            case FrpcInternals.TYPE_DOUBLE:
+            case FrpcConstants.TYPE_DOUBLE:
                 result = unmarshallFloatingPointType(data);
                 break;
-            case FrpcInternals.TYPE_INT_POS:
+            case FrpcConstants.TYPE_INT_POS:
                 result = unmarshallIntegralType(data, true);
                 break;
-            case FrpcInternals.TYPE_INT_NEG:
+            case FrpcConstants.TYPE_INT_NEG:
                 result = unmarshallIntegralType(data, false);
                 break;
-            case FrpcInternals.TYPE_BOOL:
+            case FrpcConstants.TYPE_BOOL:
                 result = unmarshallBoolean(data);
                 break;
-            case FrpcInternals.TYPE_ARRAY:
+            case FrpcConstants.TYPE_ARRAY:
                 result = unmarshallArray(data);
                 break;
-            case FrpcInternals.TYPE_STRUCT:
+            case FrpcConstants.TYPE_STRUCT:
                 result = unmarshallStruct(data);
                 break;
-            case FrpcInternals.TYPE_DATETIME:
+            case FrpcConstants.TYPE_DATETIME:
                 result = unmarshallDateTime(data);
                 break;
-            case FrpcInternals.TYPE_BINARY:
+            case FrpcConstants.TYPE_BINARY:
                 result = unmarshallBinary(data);
                 break;
-            case FrpcInternals.TYPE_NULL:
+            case FrpcConstants.TYPE_NULL:
                 result = null;
                 break;
             default:
                 throw new FrpcDataException("Error in unmarshalling: uknown frpc data type! "
-                        + (data & FrpcInternals.MASK_TYPE));
+                        + (data & FrpcConstants.MASK_TYPE));
         }
         return result;
     }

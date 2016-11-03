@@ -1,6 +1,6 @@
 package cz.seznam.frpc.client;
 
-import cz.seznam.frpc.FrpcUtils;
+import cz.seznam.frpc.common.FrpcUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,12 +29,18 @@ public class StructFrpcCallResult extends AbstractFrpcCallResult<Map<String, Obj
         String statusMessage = (String) copy.remove(FrpcUtils.STATUS_MESSAGE_KEY);
         // check how many mappings are left in the map
         Object toWrap;
-        if(copy.size() == 1) {
-            // if there is just one mapping left, pull the value out of the map
-            toWrap = copy.values().iterator().next();
-        } else {
-            // otherwise wrap the resulting map
-            toWrap = copy;
+        switch (copy.size()) {
+            case 0:
+                // if there is nothing left in the map, there is essentially no result, hence null
+                toWrap = null;
+                break;
+            case 1:
+                // if there is just one mapping left, pull the value out of the map
+                toWrap = copy.values().iterator().next();
+                break;
+            default:
+                // if there are two or more mappings, leave it as a map
+                toWrap = copy;
         }
         // and return new UnwrappedFrpcCallResult wrapping that object
         return new UnwrappedFrpcCallResult(toWrap, httpResponseStatus, statusCode, statusMessage);

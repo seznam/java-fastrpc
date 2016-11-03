@@ -13,60 +13,65 @@ public class FrpcDemoClient
 
         // unwrapping takes care of single-valued responses
         Integer sum = client.call("numberOperations.add", 3, 2).unwrap().as(Integer.class);
-        System.out.println(sum);
+        System.out.println("Result of numberOperations.add using unwrap(): " + sum);
 
         // and there is even a shorthand for it
         Integer sum2 = client.callAndUnwrap("numberOperations.add", 3, 2).as(Integer.class);
-        System.out.println(sum2);
+        System.out.println("Result of numberOperations.add using callAndUnwrap(): " + sum2);
 
         // yet it's not mandatory, this is equivalent to previous call
         Integer sum3 = client.call("numberOperations.add", 3, 2).asStruct().get("result").as(Integer.class);
-        System.out.println(sum3);
+        System.out.println("Result of numberOperations.add using asStruct().get(): " + sum3);
 
         // nested structures can be retrieved using "get" method of structured result
         // "getStruct" comes in handy when the value to get is again a structure
         Integer multiplication = client.call("numberOperations.multiply", 3, 2)
                 .asStruct().getStruct("result").get("multiplication").as(Integer.class);
-        System.out.println(multiplication);
+        System.out.println("Result of numberOperations.multiply (multiple nesting): " + multiplication);
 
         // nothing special here, just a call...
         Integer index = client.call("arrayOperations.indexOf", 1, new int[] {5, 6, 7, 2, 1, 6})
                 .unwrap().as(Integer.class);
-        System.out.println(index);
+        System.out.println("Result of arrayOperations.indexOf: " + index);
 
         // with asArrayOf one can specify type of an array so that it can be returned in a type-safe way
         String[] withoutNulls = client.call("collectionOperations.removeNulls", Arrays.asList("x", null, "y", null, "z", null))
                 .unwrap().asArrayOf(String.class).asArray();
-        System.out.println(Arrays.toString(withoutNulls));
+        System.out.println("Result of collectionOperations.removeNulls returned as String[]: " + Arrays.toString(withoutNulls));
 
         // arrays can be implicitly converted to Lists...
         List<String> sorted = client.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"))
                 .unwrap().asArrayOf(String.class).asList();
-        System.out.println(sorted);
+        System.out.println("Result of collectionOperations.sort returned as List<String>: " + sorted);
 
         // ... Sets ...
         Set<String> sortedAsSet = client.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"))
                 .unwrap().asArrayOf(String.class).asSet();
-        System.out.println(sortedAsSet);
+        System.out.println("Result of collectionOperations.sort returned as Set<String>: " + sortedAsSet);
 
         // ... and pretty much any other collection type
         LinkedBlockingDeque<String> sortedAsDequeue = client.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"))
                 .unwrap().asArrayOf(String.class).asCollection(LinkedBlockingDeque::new);
-        System.out.println(sortedAsDequeue);
+        System.out.println("Result of collectionOperations.sort returned as custom collection type of Strings (LinkedBlockingDeque): " + sortedAsDequeue);
 
         // maps can be retrieved from structured response directly
         Map<String, Object> map = client.call("collectionOperations.putIfAbsent", new HashMap<>(), "test", "someValue")
                 .unwrap().asStruct().asMap();
-        System.out.println(map);
+        System.out.println("Result of collectionOperations.putIfAbsent returned as Map<String, Object> using asStruct().asMap(): " + map);
 
         // binary data are just binary
-        String binaryResult = client.call("binaryOperations.bytesToString", (Object) "Binary data are just so ".getBytes())
+        String binaryResult = client.call("binaryOperations.bytesToString", (Object) "Some binary data FRPC method input".getBytes())
                 .unwrap().as(String.class);
-        System.out.print(binaryResult);
+        System.out.println("Result of binaryOperations.bytesToString: " + binaryResult);
 
-        byte[] binaryResult2 = client.call("binaryOperations.stringToBytes", "goddamn binary!")
+        byte[] binaryResult2 = client.call("binaryOperations.stringToBytes", "Some binary data as FRPC method result")
                 .unwrap().as(byte[].class);
-        System.out.println(new String(binaryResult2));
+        System.out.println("Result of binaryOperations.stringToBytes: " + Arrays.toString(binaryResult2));
+
+        // nulls are just nulls
+        Void nullResult = client.call("binaryOperations./dev/null", "String to be obliterated")
+                .unwrap().as(Void.class);
+        System.out.println("Result of binaryOperations./dev/null: " + nullResult);
 
     }
 }

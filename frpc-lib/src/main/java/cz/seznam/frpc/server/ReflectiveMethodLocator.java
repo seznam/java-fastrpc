@@ -1,9 +1,9 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.FrpcIgnore;
-import cz.seznam.frpc.FrpcName;
-import cz.seznam.frpc.FrpcResponse;
-import cz.seznam.frpc.FrpcTypes;
+import cz.seznam.frpc.server.annotations.FrpcIgnore;
+import cz.seznam.frpc.server.annotations.FrpcName;
+import cz.seznam.frpc.server.annotations.FrpcResponse;
+import cz.seznam.frpc.common.FrpcTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
