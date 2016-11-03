@@ -5,17 +5,19 @@ import cz.seznam.frpc.FrpcCallException;
 import cz.seznam.frpc.FrpcDataException;
 import cz.seznam.frpc.FrpcUnmarshaller;
 import org.apache.commons.lang3.ArrayUtils;
-import org.eclipse.jetty.client.api.ContentResponse;
-import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.client.util.BytesContentProvider;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.HttpCookie;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -25,28 +27,28 @@ public class FrpcMethodCall {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FrpcMethodCall.class);
 
-    private Request request;
+    private HttpClient client;
+    private HttpPost request;
     private List<Object> implicitParameters;
-    private List<HttpCookie> cookies;
     private Map<String, String> headers;
     private int maxAttemptCount;
-    private long timeout;
-    private TimeUnit timeoutTimeUnit;
+    private Long connectTimeout;
+    private TimeUnit connectTimeoutTimeUnit;
+    private Long socketTimeout;
+    private TimeUnit socketTimeoutTimeUnit;
     private long retryDelay;
     private TimeUnit retryDelayTimeUnit;
     private String method;
     private List<Object> parameters;
 
-    FrpcMethodCall(Request request, List<Object> implicitParameters, List<HttpCookie> cookies,
-                          Map<String, String> headers, int maxAttemptCount, long timeout, TimeUnit timeoutTimeUnit,
-                          long retryDelay, TimeUnit retryDelayTimeUnit, String method, List<Object> parameters) {
+    FrpcMethodCall(HttpClient client, HttpPost request, List<Object> implicitParameters,
+                   Map<String, String> headers, int maxAttemptCount, long retryDelay, TimeUnit retryDelayTimeUnit,
+                   String method, List<Object> parameters) {
+        this.client = client;
         this.request = request;
         this.implicitParameters = implicitParameters == null ? Collections.emptyList() : implicitParameters;
-        this.cookies = cookies == null ? Collections.emptyList() : cookies;
         this.headers = headers == null ? Collections.emptyMap() : headers;
         this.maxAttemptCount = maxAttemptCount;
-        this.timeout = timeout;
-        this.timeoutTimeUnit = timeoutTimeUnit;
         this.retryDelay = retryDelay;
         this.retryDelayTimeUnit = retryDelayTimeUnit;
         this.method = method;
@@ -66,36 +68,6 @@ public class FrpcMethodCall {
         return this;
     }
 
-    public FrpcMethodCall withCookies(HttpCookie... cookies) {
-        this.cookies = cookies == null ? null :
-                Arrays.stream(cookies).collect(Collectors.toList());
-        return this;
-    }
-
-    public FrpcMethodCall withCookies(Collection<HttpCookie> cookies) {
-        this.cookies = cookies == null ? null :
-                cookies.stream().collect(Collectors.toList());
-        return this;
-    }
-
-    public FrpcMethodCall withAddedCookies(HttpCookie... cookies) {
-        if(ArrayUtils.isNotEmpty(cookies)) {
-            Arrays.stream(cookies).forEach(this.cookies::add);
-        }
-        return this;
-    }
-
-    public FrpcMethodCall withAddedCookie(Collection<HttpCookie> cookies) {
-        this.cookies = cookies == null ? null :
-                cookies.stream().collect(Collectors.toList());
-        return this;
-    }
-
-    public FrpcMethodCall withAddedCookies(Collection<HttpCookie> cookies) {
-        this.cookies.addAll(Objects.requireNonNull(cookies));
-        return this;
-    }
-
     public FrpcMethodCall withHeaders(Map<String, String> headers) {
         this.headers = headers;
         return this;
@@ -111,9 +83,15 @@ public class FrpcMethodCall {
         return this;
     }
 
-    public FrpcMethodCall withTimeout(long newTimeout, TimeUnit timeUnit)  {
-        this.timeout = newTimeout;
-        this.timeoutTimeUnit = Objects.requireNonNull(timeUnit);
+    public FrpcMethodCall withConnectTimeout(long newTimeout, TimeUnit timeUnit)  {
+        this.connectTimeout = newTimeout;
+        this.connectTimeoutTimeUnit = Objects.requireNonNull(timeUnit);
+        return this;
+    }
+
+    public FrpcMethodCall withSocketTimeout(long newTimeout, TimeUnit timeUnit) {
+        this.socketTimeout = newTimeout;
+        this.socketTimeoutTimeUnit = Objects.requireNonNull(timeUnit);
         return this;
     }
 
@@ -161,22 +139,26 @@ public class FrpcMethodCall {
 
                 // prepare the request
                 prepareRequest();
-                // add content provider
-                request.content(new BytesContentProvider(marshaller.getBytes()));
+                // set body
+                request.setEntity(new ByteArrayEntity(marshaller.getBytes()));
                 // send it
-                ContentResponse response = request.send();
+                HttpResponse response = client.execute(request);
 
-                // get the response as byte array
-                byte[] responseBody = response.getContent();
                 // unmarshall the response body into an object
-                FrpcUnmarshaller unmarshaller = new FrpcUnmarshaller(responseBody);
-                Object responseObject = unmarshaller.unmarshallObject();
-                // create FRPC result out the unmarshalled response
-                output =  new FrpcCallResult(responseObject, response.getStatus());
+                InputStream body = response.getEntity().getContent();
+                try {
+                    FrpcUnmarshaller unmarshaller = new FrpcUnmarshaller(body);
+                    Object responseObject = unmarshaller.unmarshallObject();
+                    // create FRPC result out the unmarshalled response
+                    output =  new FrpcCallResult(responseObject, response.getStatusLine().getStatusCode());
+                } finally {
+                    EntityUtils.consumeQuietly(response.getEntity());
+                }
+                // done, break the cycle
                 break;
-            } catch (FrpcDataException | InterruptedException | ExecutionException | TimeoutException e) {
+            } catch (FrpcDataException | IOException e) {
                 if(attempts == maxAttemptCount) {
-                    throw new FrpcCallException("An error occurred repeatedly (" + maxAttemptCount + " times) while trying to call FRPC method " + method);
+                    throw new FrpcCallException("An error occurred repeatedly (" + maxAttemptCount + " times) while trying to call FRPC method " + method, e);
                 }
                 if(retryDelay > 0) {
                     try {
@@ -192,9 +174,19 @@ public class FrpcMethodCall {
     }
 
     private void prepareRequest() {
-        request.timeout(timeout, timeoutTimeUnit);
-        cookies.forEach(request::cookie);
-        headers.forEach(request::header);
+        // set timeouts
+        if(connectTimeout != null || socketTimeout != null) {
+            RequestConfig.Builder configBuilder = RequestConfig.custom();
+            if(connectTimeout != null) {
+                configBuilder.setConnectTimeout((int) connectTimeoutTimeUnit.toMillis(connectTimeout));
+            }
+            if(socketTimeout != null) {
+                configBuilder.setSocketTimeout((int) socketTimeoutTimeUnit.toMillis(socketTimeout));
+            }
+            request.setConfig(configBuilder.build());
+        }
+        // set headers
+        headers.forEach(request::setHeader);
     }
 
 }

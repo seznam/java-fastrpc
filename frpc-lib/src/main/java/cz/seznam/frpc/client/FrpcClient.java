@@ -1,9 +1,9 @@
 package cz.seznam.frpc.client;
 
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.Request;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.HttpClients;
 
-import java.net.HttpCookie;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -16,36 +16,28 @@ public class FrpcClient {
 
     private HttpClient httpClient;
     private String urlString;
-    private List<HttpCookie> cookies;
     private Map<String, String> headers;
-    private long connectionTimeout = 10000;
-    private TimeUnit timeoutTimeUnit = TimeUnit.MILLISECONDS;
     private long retryDelay = 0;
     private TimeUnit retryDelayTimeUnit = TimeUnit.MILLISECONDS;
     private int maxAttemptCount = 3;
     private List<Object> implicitParameters = Collections.emptyList();
 
+    public FrpcClient(String urlString) {
+        this(urlString, HttpClients.createDefault());
+    }
+
     public FrpcClient(URL url) {
-        this(url, new HttpClient());
+        this(url, HttpClients.createDefault());
+    }
+
+    public FrpcClient(String urlString, HttpClient httpClient) {
+        this.urlString = FrpcClientUtils.createURL(urlString).toString();
+        this.httpClient = Objects.requireNonNull(httpClient);
     }
 
     public FrpcClient(URL url, HttpClient httpClient) {
         this.urlString = Objects.requireNonNull(url).toString();
         this.httpClient = Objects.requireNonNull(httpClient);
-        // start the client
-        try {
-            httpClient.start();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public List<HttpCookie> getCookies() {
-        return Collections.unmodifiableList(cookies);
-    }
-
-    public void setCookies(List<HttpCookie> cookies) {
-        this.cookies = cookies;
     }
 
     public Map<String, String> getHeaders() {
@@ -54,50 +46,6 @@ public class FrpcClient {
 
     public void setHeaders(Map<String, String> headers) {
         this.headers = headers;
-    }
-
-    /**
-     * Returns connection timeout in millis.
-     *
-     * Default is 10000.
-     *
-     * @return connection timeout in millis
-     */
-    public long getConnectionTimeout() {
-        return connectionTimeout;
-    }
-
-    /**
-     * Sets connections timeout in millis.
-     *
-     * @param timeout the timeout to be set
-     */
-    public void setConnectionTimeout(long timeout) {
-        connectionTimeout = timeout;
-    }
-
-    public TimeUnit getTimeoutTimeUnit() {
-        return timeoutTimeUnit;
-    }
-
-    public void setTimeoutTimeUnit(TimeUnit timeoutTimeUnit) {
-        this.timeoutTimeUnit = timeoutTimeUnit;
-    }
-
-    public long getRetryDelay() {
-        return retryDelay;
-    }
-
-    public void setRetryDelay(long retryDelay) {
-        this.retryDelay = retryDelay;
-    }
-
-    public TimeUnit getRetryDelayTimeUnit() {
-        return retryDelayTimeUnit;
-    }
-
-    public void setRetryDelayTimeUnit(TimeUnit retryDelayTimeUnit) {
-        this.retryDelayTimeUnit = retryDelayTimeUnit;
     }
 
     /**
@@ -150,8 +98,8 @@ public class FrpcClient {
         Objects.requireNonNull(method);
         List<Object> paramsAsList = Arrays.asList(Objects.requireNonNull(params));
         // and create FrpcMethodCall object
-        return new FrpcMethodCall(createRequest(), implicitParameters, cookies, headers, maxAttemptCount,
-                connectionTimeout, timeoutTimeUnit, retryDelay, retryDelayTimeUnit, method, paramsAsList);
+        return new FrpcMethodCall(httpClient, new HttpPost(urlString), implicitParameters, headers, maxAttemptCount,
+                retryDelay, retryDelayTimeUnit, method, paramsAsList);
     }
 
     public FrpcCallResult call(String method, Object... params) {
@@ -160,10 +108,6 @@ public class FrpcClient {
 
     public UnwrappedFrpcCallResult callAndUnwrap(String method, Object... params) {
         return prepareCall(method, params).getResult().unwrap();
-    }
-
-    private Request createRequest() {
-        return httpClient.POST(urlString);
     }
 
 }
