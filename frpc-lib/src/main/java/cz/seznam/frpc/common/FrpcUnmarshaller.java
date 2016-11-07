@@ -103,11 +103,11 @@ public class FrpcUnmarshaller {
         for (int i = 0; i <= octets; i++) {
             value |= (long) read() << (i << 3);
         }
-        // if the value should be negative, make it so
+        // if the name should be negative, make it so
         if(!positive) {
             value = -value;
         }
-        // if the value fits into int, return int instead
+        // if the name fits into int, return int instead
         if((int) value == value) {
             return (int) value;
         } else {

@@ -1,6 +1,6 @@
 package cz.seznam.frpc.client;
 
-import cz.seznam.frpc.common.FrpcUtils;
+import cz.seznam.frpc.common.FrpcResponseUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,12 +21,18 @@ public class StructFrpcCallResult extends AbstractFrpcCallResult<Map<String, Obj
     }
 
     @Override
+    public boolean isFrpcError() {
+        Integer statusCode = (Integer) wrapped.get(FrpcResponseUtils.STATUS_KEY);
+        return statusCode != null && statusCode == 500;
+    }
+
+    @Override
     public UnwrappedFrpcCallResult unwrap() {
         // create copy of wrapped map
         Map<String, Object> copy = new HashMap<>(wrapped);
         // remove mapping for status code and status message
-        Integer statusCode = (Integer) copy.remove(FrpcUtils.STATUS_KEY);
-        String statusMessage = (String) copy.remove(FrpcUtils.STATUS_MESSAGE_KEY);
+        Integer statusCode = (Integer) copy.remove(FrpcResponseUtils.STATUS_KEY);
+        String statusMessage = (String) copy.remove(FrpcResponseUtils.STATUS_MESSAGE_KEY);
         // check how many mappings are left in the map
         Object toWrap;
         switch (copy.size()) {
@@ -35,7 +41,7 @@ public class StructFrpcCallResult extends AbstractFrpcCallResult<Map<String, Obj
                 toWrap = null;
                 break;
             case 1:
-                // if there is just one mapping left, pull the value out of the map
+                // if there is just one mapping left, pull the name out of the map
                 toWrap = copy.values().iterator().next();
                 break;
             default:
@@ -54,7 +60,7 @@ public class StructFrpcCallResult extends AbstractFrpcCallResult<Map<String, Obj
     @Override
     public FrpcCallResult get(String key) {
         checkKey(key);
-        // get the value of this key
+        // get the name of this resultKey
         Object value = wrapped.get(key);
         // and create generic UnwrappedFrpcCallResult out of it
         return new FrpcCallResult(value, httpResponseStatus);

@@ -16,6 +16,11 @@ public class ArrayFrpcCallResult<T> extends AbstractFrpcCallResult<Object[]> {
         this.elementsClass = elementsClass;
     }
 
+    @Override
+    public boolean isFrpcError() {
+        return false;
+    }
+
     @SuppressWarnings({"unchecked"})
     public T[] asArray() {
         T[] copy = (T[]) Array.newInstance(elementsClass, wrapped.length);

@@ -2,15 +2,23 @@ package cz.seznam.frpc.common;
 
 public class FrpcDataException extends Exception {
 
-    private static final long serialVersionUID = 8783225693772208282L;
-
-    private String message;
-
-    public FrpcDataException(String msg) {
-        message = msg;
+    public FrpcDataException() {
     }
 
-    public String toString() {
-        return "FrpcDataException" + message;
+    public FrpcDataException(String message) {
+        super(message);
     }
+
+    public FrpcDataException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public FrpcDataException(Throwable cause) {
+        super(cause);
+    }
+
+    public FrpcDataException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
+
 }

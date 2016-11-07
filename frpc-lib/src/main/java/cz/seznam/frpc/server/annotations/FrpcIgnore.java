@@ -6,8 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marker annotation used to mark non-static public methods in FastRPC handlers which should not be
- * published by the FastRPC server.
+ * Marker annotation used to mark non-static public methods in {@code FRPC} handlers which should not be
+ * published by the {@code FRPC} server.
  *
  * @author David Moidl david.moidl@firma.seznam.cz
  */

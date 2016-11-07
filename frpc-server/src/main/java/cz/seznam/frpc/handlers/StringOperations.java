@@ -1,16 +1,18 @@
 package cz.seznam.frpc.handlers;
 
-import cz.seznam.frpc.server.annotations.FrpcResponse;
+import cz.seznam.frpc.server.annotations.FrpcMethod;
 
 import java.util.LinkedList;
 import java.util.List;
 
 /**
+ * Just a simple example class publishing implementing some {@code FRPC} methods.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class StringOperations {
 
-    @FrpcResponse(key = "result")
+    @FrpcMethod(resultKey = "result")
     public List<Integer> indexOf(String str, String sub) {
         List<Integer> positions = new LinkedList<>();
 
@@ -28,7 +30,7 @@ public class StringOperations {
         return positions;
     }
 
-    @FrpcResponse(key = "substring")
+    @FrpcMethod(resultKey = "substring")
     public String sub(String source, int from, int to) {
         return source.substring(from, to);
     }

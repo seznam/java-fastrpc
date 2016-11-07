@@ -24,7 +24,7 @@ public class FrpcDemoClient
         System.out.println("Result of numberOperations.add using asStruct().get(): " + sum3);
 
         // nested structures can be retrieved using "get" method of structured result
-        // "getStruct" comes in handy when the value to get is again a structure
+        // "getStruct" comes in handy when the name to get is again a structure
         Integer multiplication = client.call("numberOperations.multiply", 3, 2)
                 .asStruct().getStruct("result").get("multiplication").as(Integer.class);
         System.out.println("Result of numberOperations.multiply (multiple nesting): " + multiplication);

@@ -145,7 +145,7 @@ public class FrpcMarshaller {
         if (value < 0) {
             if (value == Integer.MIN_VALUE) {
                 throw new FrpcDataException(
-                        "Exception in frpc packInt: Value is smaller then minimal value");
+                        "Exception in frpc packInt: Value is smaller then minimal name");
             }
             typeOfInt = FrpcConstants.TYPE_INT_NEG;
             value = -value;
@@ -170,7 +170,7 @@ public class FrpcMarshaller {
         if (value < 0) {
             if (value == Long.MIN_VALUE) {
                 throw new FrpcDataException(
-                        "Exception in frpc packInt: Value is smaller then minimal value");
+                        "Exception in frpc packInt: Value is smaller then minimal name");
             }
             typeOfInt = FrpcConstants.TYPE_INT_NEG;
             value = -value;

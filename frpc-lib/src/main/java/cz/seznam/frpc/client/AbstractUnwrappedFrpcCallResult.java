@@ -14,6 +14,11 @@ class AbstractUnwrappedFrpcCallResult<T> extends AbstractFrpcCallResult<T> {
         this.statusMessage = statusMessage;
     }
 
+    @Override
+    public boolean isFrpcError() {
+        return statusCode != null && statusCode == 500;
+    }
+
     public Integer getStatusCode() {
         return statusCode;
     }

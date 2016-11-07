@@ -17,7 +17,7 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
 
     private static final String DEFAULT_HANDLER_NAME = "";
 
-    private Map<String, FrpcMethodHandler> handlerMapping;
+    private Map<String, FrpcMethodMetaDataProviderAndHandler> handlerMapping;
 
     public HandlerUsingFrpcRequestProcesor(FrpcHandlerMapping handlerMapping) {
         Objects.requireNonNull(handlerMapping);
@@ -25,9 +25,9 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
     }
 
     @Override
-    public FrpcRequestProcessingResult process(InputStream is) throws Exception {
+    public FrpcRequestProcessingResult process(InputStream requestBody) throws Exception {
         // create FRPC unmarshaller
-        FrpcUnmarshaller unmarshaller = new FrpcUnmarshaller(is);
+        FrpcUnmarshaller unmarshaller = new FrpcUnmarshaller(requestBody);
 
         // try to unmarshall method name
         String requestMethodName = unmarshaller.unmarshallMethodName();
@@ -50,32 +50,34 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
             // and the rest is the actual method name
             handlerMethodName = requestMethodName.substring(lastDotIndex + 1, requestMethodName.length());
         }
-        LOGGER.debug("Delegating FRPC method call to method \"{}\" of handler mapped to \"{}\"", handlerMethodName, handlerName);
+        LOGGER.debug("Delegating FRPC method call to method \"{}\" of handler mapped to \"{}\"", handlerMethodName,
+                handlerName);
 
         // invoke the method
         return invokeHandler(handlerName, handlerMethodName, requestMethodName, unmarshaller);
     }
 
-    private FrpcRequestProcessingResult invokeHandler(String handlerName, String handlerMethodName, String requestMethodName, FrpcUnmarshaller unmarshaller)
+    private FrpcRequestProcessingResult invokeHandler(String handlerName, String handlerMethodName,
+                                                      String requestMethodName, FrpcUnmarshaller unmarshaller)
             throws Exception {
         // try to find the handler first
-        FrpcMethodHandler methodHandler = handlerMapping.get(handlerName);
+        FrpcMethodMetaDataProviderAndHandler methodHandler = handlerMapping.get(handlerName);
         // check if we have any handler mapped to this name
         if(methodHandler == null) {
             throw new RuntimeException("There is no handler mapped to prefix \"" + handlerName + "\"");
         }
 
         // getResult the method argument types resolver
-        MethodMetaDataProvider methodMetaDataProvider = methodHandler.getMethodMetaDataProvider();
+        FrpcMethodMetaDataProvider methodMetaDataProvider = methodHandler.getMethodMetaDataProvider();
         // getResult method metadata
-        MethodMetaData methodMetaData = methodMetaDataProvider.getMethodMetaData(handlerMethodName);
+        FrpcMethodMetaData methodMetaData = methodMetaDataProvider.getMethodMetaData(handlerMethodName);
         Class<?>[] parameterTypes = methodMetaData.getParameterTypes();
 
         // try to unmarshall arguments according to method parameter types
         Object[] arguments = FrpcServerUtils.unmarshallMethodArguments(requestMethodName, parameterTypes, unmarshaller);
 
         // call the method handler
-        Object methodResult = methodHandler.getFrpcHandler().handleRequest(handlerMethodName, arguments);
+        Object methodResult = methodHandler.getFrpcHandler().handleFrpcMethodCall(handlerMethodName, arguments);
         // create proper object to return
         return new FrpcRequestProcessingResult(methodResult, methodMetaData.getResponseKey());
     }

@@ -1,38 +1,36 @@
 package cz.seznam.frpc.handlers;
 
+import cz.seznam.frpc.common.FrpcResponseUtils;
 import cz.seznam.frpc.server.annotations.FrpcIgnore;
-import cz.seznam.frpc.server.annotations.FrpcName;
-import cz.seznam.frpc.server.annotations.FrpcResponse;
-import cz.seznam.frpc.common.FrpcUtils;
+import cz.seznam.frpc.server.annotations.FrpcMethod;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * Just a simple example class publishing implementing some {@code FRPC} methods.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class Calculator {
 
     private AtomicLong addCallCount = new AtomicLong(0);
 
-    @FrpcName("add")
-    @FrpcResponse(key = "result")
+    @FrpcMethod(name = "add", resultKey = "result")
     public long plus(long i, long j) {
         addCallCount.incrementAndGet();
         return i + j;
     }
 
-    @FrpcName("subtract")
-    @FrpcResponse(key = "result")
+    @FrpcMethod(name = "subtract", resultKey = "result")
     public long minus(long i, long j) {
         return i - j;
     }
 
-    @FrpcName("multiply")
-    @FrpcResponse(key = "result")
+    @FrpcMethod(name = "multiply", resultKey = "result")
     public Map<String, Object> times(long i, long j) {
         long result = i * j;
-        Map<String, Object> output = FrpcUtils.ok("No problem ;)");
+        Map<String, Object> output = FrpcResponseUtils.ok("No problem ;)");
         output.put("multiplication", result);
         return output;
     }
@@ -42,8 +40,7 @@ public class Calculator {
         return i / j;
     }
 
-    @FrpcName("addCallCount")
-    @FrpcResponse(key = "count")
+    @FrpcMethod(name = "addCallCount", resultKey = "count")
     public long getAddCallCount() {
         return addCallCount.get();
     }

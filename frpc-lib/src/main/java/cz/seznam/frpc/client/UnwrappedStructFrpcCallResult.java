@@ -25,7 +25,7 @@ public class UnwrappedStructFrpcCallResult extends AbstractUnwrappedFrpcCallResu
     @Override
     public UnwrappedFrpcCallResult get(String key) {
         checkKey(key);
-        // get the value of this key
+        // get the name of this resultKey
         Object value = getMap().get(key);
         // and create generic UnwrappedFrpcCallResult out of it
         return new UnwrappedFrpcCallResult(value, httpResponseStatus, statusCode, statusMessage);
@@ -33,7 +33,7 @@ public class UnwrappedStructFrpcCallResult extends AbstractUnwrappedFrpcCallResu
 
     @Override
     public UnwrappedStructFrpcCallResult getStruct(String key) {
-        // get key and return it as struct
+        // get resultKey and return it as struct
         return get(key).asStruct();
     }
 

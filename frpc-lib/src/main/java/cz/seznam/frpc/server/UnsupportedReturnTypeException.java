@@ -1,6 +1,9 @@
 package cz.seznam.frpc.server;
 
 /**
+ * Thrown to indicate that a {@code FRPC} method implementation has a return type incompatible with current
+ * implementation of {@code FRPC} protocol.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class UnsupportedReturnTypeException extends RuntimeException {

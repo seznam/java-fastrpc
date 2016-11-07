@@ -12,6 +12,11 @@ public class FrpcCallResult extends AbstractFrpcCallResult<Object> implements Un
     }
 
     @Override
+    public boolean isFrpcError() {
+        return isStruct() && asStruct().isFrpcError();
+    }
+
+    @Override
     public UnwrappedFrpcCallResult unwrap() {
         return isStruct() ? asStruct().unwrap() : new UnwrappedFrpcCallResult(wrapped, httpResponseStatus, null, null);
     }
