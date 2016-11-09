@@ -1,6 +1,6 @@
 package cz.seznam.frpc.handlers;
 
-import cz.seznam.frpc.common.FrpcResponseUtils;
+import cz.seznam.frpc.core.FrpcResponseUtils;
 import cz.seznam.frpc.server.annotations.FrpcIgnore;
 import cz.seznam.frpc.server.annotations.FrpcMethod;
 

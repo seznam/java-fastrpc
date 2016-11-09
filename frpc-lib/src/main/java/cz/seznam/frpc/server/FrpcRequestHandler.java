@@ -1,19 +1,20 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.common.FrpcMarshaller;
-import cz.seznam.frpc.common.FrpcDataException;
+import cz.seznam.frpc.core.FrpcDataException;
+import cz.seznam.frpc.core.transport.*;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
 
@@ -25,6 +26,8 @@ import java.util.Objects;
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class FrpcRequestHandler extends AbstractHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(FrpcRequestHandler.class);
 
     private FrpcRequestProcessor frpcRequestProcessor;
     private FrpcResultTransformer<Map<String, Object>> frpcResultTransformer;
@@ -65,8 +68,27 @@ public class FrpcRequestHandler extends AbstractHandler {
             Map<String, Object> result;
             // try to handle the request
             Object handlerResult;
+            // default protocol is XML-RPC
+            Protocol protocol = Protocol.XML_RPC;
             try {
-                handlerResult = doHandle(target, baseRequest, request, response);
+                // get content type
+                String contentType = request.getContentType();
+                if(contentType == null) {
+                    contentType = Protocol.XML_RPC.getContentType();
+                    LOGGER.debug("Content type header is missing, defaulting to {}", contentType);
+                }
+                // try to get Protocol from content type
+                try {
+                    protocol = Protocol.fromContentType(contentType);
+                } catch (IllegalArgumentException e) {
+                    throw new FrpcTransportException("Given content type is not supported by any known protocol", e);
+                }
+                // check that content length is specified
+                if(protocol == Protocol.FRPC && request.getContentLengthLong() < 0) {
+                    throw new FrpcTransportException("Content length must be specified");
+                }
+
+                handlerResult = doHandle(request, protocol);
             } catch (Exception e) {
                 handlerResult = e;
             }
@@ -81,42 +103,50 @@ public class FrpcRequestHandler extends AbstractHandler {
                     result = frpcResultTransformer.transformOkResponse((FrpcRequestProcessingResult) handlerResult);
                 }
                 // serialize the result into the response
-                handleResponse(result, response);
+                handleResponse(result, response, protocol);
             } catch (Exception e) {
                 // if we can't properly handle the response, just return 500 with no content
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             }
         } else {
+            // if the HTTP method is not POST, return 405
             response.setStatus(HttpStatus.METHOD_NOT_ALLOWED_405);
+            // and set the request as handled so that the server know we actually did something (otherwise it would
+            // return 404 even though we specified 405)
             baseRequest.setHandled(true);
         }
         // add response headers
         addResponseHeaders(response);
     }
 
-    private FrpcRequestProcessingResult doHandle(String target, Request baseRequest, HttpServletRequest request,
-                                                 HttpServletResponse response) throws Exception {
-        // getResult the request body
-        InputStream is = request.getInputStream();
+    private FrpcRequestProcessingResult doHandle(HttpServletRequest request, Protocol protocol) throws Exception {
+        // get request reader for protocol
+        FrpcRequestReader requestReader = FrpcRequestReader.forProtocol(protocol);
+        // read the request
+        FrpcRequest frpcRequest = requestReader.read(request.getInputStream(), request.getContentLength());
         // process it using the request processor
-        return frpcRequestProcessor.process(is);
+        return frpcRequestProcessor.process(frpcRequest);
     }
 
-    private void handleResponse(Object result, HttpServletResponse response) throws FrpcDataException, IOException {
-        // marshall response
+    private void handleResponse(Object result, HttpServletResponse response, Protocol protocol) throws FrpcDataException,
+            IOException {
+        // create response writer for given protocol
+        FrpcResponseWriter responseWriter = FrpcResponseWriter.forProtocol(protocol);
+        // write response to byte array so that we can set content length header properly
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        FrpcMarshaller marshaller = new FrpcMarshaller(baos);
-        marshaller.packMagic();
-        marshaller.packItem(result);
-        // set it to the response
-        byte[] bytes = baos.toByteArray();
-        response.setContentLength(bytes.length);
-        response.getOutputStream().write(bytes);
+        // write result to the response
+        responseWriter.write(result, baos);
+        // set response properties
         response.setStatus(HttpStatus.OK_200);
+        response.setContentType(protocol.getContentType());
+        response.setContentLength(baos.size());
+        // write response body
+        response.getOutputStream().write(baos.toByteArray());
     }
 
     private void addResponseHeaders(HttpServletResponse response) {
-        response.addHeader(HttpHeader.ACCEPT.asString(), "text/xml, application/x-frpc");
+        // response.addHeader(HttpHeader.ACCEPT.asString(), "text/xml, application/x-frpc");
+        response.addHeader(HttpHeader.ACCEPT.asString(), "text/xml");
     }
 
 }

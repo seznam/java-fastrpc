@@ -1,6 +1,8 @@
-package cz.seznam.frpc.common;
+package cz.seznam.frpc.core;
 
-public class FrpcDataException extends Exception {
+import cz.seznam.frpc.core.transport.FrpcTransportException;
+
+public class FrpcDataException extends FrpcTransportException {
 
     public FrpcDataException() {
     }

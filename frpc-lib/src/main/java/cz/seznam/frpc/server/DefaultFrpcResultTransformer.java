@@ -1,6 +1,6 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.common.FrpcResponseUtils;
+import cz.seznam.frpc.core.FrpcResponseUtils;
 import org.eclipse.jetty.http.HttpStatus;
 
 import java.util.Map;

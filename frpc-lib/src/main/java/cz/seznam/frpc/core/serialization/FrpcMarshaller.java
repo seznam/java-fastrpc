@@ -1,17 +1,19 @@
-package cz.seznam.frpc.common;
+package cz.seznam.frpc.core.serialization;
+
+import cz.seznam.frpc.core.FrpcConstants;
+import cz.seznam.frpc.core.FrpcDataException;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
 
 public class FrpcMarshaller {
 
     protected OutputStream outputStream;
-
-    protected FrpcMarshaller() {
-    }
 
     public FrpcMarshaller(OutputStream outputStream) {
         this.outputStream = Objects.requireNonNull(outputStream);
@@ -21,7 +23,7 @@ public class FrpcMarshaller {
         try {
             outputStream.write(FrpcConstants.MAGIC_NUMBER);
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing magic number name", e);
         }
     }
 
@@ -29,9 +31,9 @@ public class FrpcMarshaller {
         try {
             outputStream.write(FrpcConstants.TYPE_METHOD_CALL);
             outputStream.write(methodName.length());
-            outputStream.write(methodName.getBytes());
+            outputStream.write(methodName.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing method name", e);
         }
     }
 
@@ -39,11 +41,11 @@ public class FrpcMarshaller {
         try {
             outputStream.write(FrpcConstants.TYPE_METHOD_RESPONSE);
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing method response", e);
         }
     }
 
-    public void packArray(int numOfItems) throws FrpcDataException {
+    private void packArray(int numOfItems) throws FrpcDataException {
         int octets = 0;
         while ((numOfItems >> (octets << 3)) > 255 && octets < 7) {
             octets++;
@@ -55,30 +57,16 @@ public class FrpcMarshaller {
                 outputStream.write((numOfItems >> (i << 3)) & 0xff);
             }
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing an array", e);
         }
     }
 
-    public void packBinary(byte[] value) throws FrpcDataException {
-        int size = value.length;
-        int octets = 0;
-        while ((size >> (octets << 3)) > 255 && octets < 7) {
-            octets++;
-        }
-        doPackBinary(value, size, octets);
-    }
-
-    public void packBinary(ByteBuffer value) throws FrpcDataException {
-        byte[] data = value.array();
+    private void packBinary(byte[] data) throws FrpcDataException {
         int size = data.length;
         int octets = 0;
         while ((size >> (octets << 3)) > 255 && octets < 7) {
             octets++;
         }
-        doPackBinary(data, size, octets);
-    }
-
-    private void doPackBinary(byte[] data, int size, int octets) throws FrpcDataException {
         try {
             outputStream.write(FrpcConstants.TYPE_BINARY | octets);
 
@@ -87,19 +75,19 @@ public class FrpcMarshaller {
             }
             outputStream.write(data);
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing binary data", e);
         }
     }
 
-    public void packBool(boolean value) throws FrpcDataException {
+    private void packBool(boolean value) throws FrpcDataException {
         try {
             outputStream.write(FrpcConstants.TYPE_BOOL | (value ? 1 : 0));
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing boolean values", e);
         }
     }
 
-    public void packDateTime(int timeStamp, int weekDay, int year, int month, int day, int hour, int min,
+    private void packDateTime(int timeStamp, int weekDay, int year, int month, int day, int hour, int min,
                              int sec, int timeZone) throws FrpcDataException {
 
         int s1 = (sec & 0x1f) << 3 | (weekDay & 0x07);
@@ -121,12 +109,12 @@ public class FrpcMarshaller {
             outputStream.write(s4 & 0xff);
             outputStream.write(s5 & 0xff);
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing date time value", e);
         }
 
     }
 
-    public void packDouble(double value) throws FrpcDataException {
+    private void packDouble(double value) throws FrpcDataException {
         long binaryValue = Double.doubleToLongBits(value);
         try {
             outputStream.write(FrpcConstants.TYPE_DOUBLE);
@@ -135,17 +123,17 @@ public class FrpcMarshaller {
                 outputStream.write((int) ((binaryValue >> (i << 3)) & 0xff));
             }
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing double value", e);
         }
     }
 
-    public void packInt(int value) throws FrpcDataException {
+    private void packInt(int value) throws FrpcDataException {
         int octets = 0;
         byte typeOfInt = FrpcConstants.TYPE_INT_POS;
         if (value < 0) {
             if (value == Integer.MIN_VALUE) {
                 throw new FrpcDataException(
-                        "Exception in frpc packInt: Value is smaller then minimal name");
+                        "Error occurred while writing int value, Integer.MIN_VALUE cannot be serialized as int");
             }
             typeOfInt = FrpcConstants.TYPE_INT_NEG;
             value = -value;
@@ -160,17 +148,17 @@ public class FrpcMarshaller {
                 outputStream.write(value >> (i << 3) & 0xff);
             }
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing int value", e);
         }
     }
 
-    public void packInt(long value) throws FrpcDataException {
+    private void packInt(long value) throws FrpcDataException {
         int octets = 0;
         byte typeOfInt = FrpcConstants.TYPE_INT_POS;
         if (value < 0) {
             if (value == Long.MIN_VALUE) {
                 throw new FrpcDataException(
-                        "Exception in frpc packInt: Value is smaller then minimal name");
+                        "Error occurred while writing long value, Long.MIN_VALUE cannot be serialized");
             }
             typeOfInt = FrpcConstants.TYPE_INT_NEG;
             value = -value;
@@ -190,18 +178,13 @@ public class FrpcMarshaller {
                 outputStream.write((int) (value >> (i << 3) & 0xff));
             }
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing long value", e);
         }
     }
 
-    public void packString(String string) throws FrpcDataException {
-        byte[] decodedString;
-        try {
-            decodedString = string.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e1) {
-            throw new FrpcDataException("Chyba pri decodovani dat...");
-        }
-        int stringLength = decodedString.length;
+    private void packString(String string) throws FrpcDataException {
+        byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
+        int stringLength = bytes.length;
         int octets = 0;
         while ((stringLength >> (octets << 3)) > 255 && octets < 7) {
             octets++;
@@ -212,13 +195,13 @@ public class FrpcMarshaller {
             for (int i = 0; i <= octets; i++) {
                 outputStream.write((stringLength >> (i << 3)) & 0xff);
             }
-            outputStream.write(decodedString);
+            outputStream.write(bytes);
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing string value", e);
         }
     }
 
-    public void packStruct(int numOfItems) throws FrpcDataException {
+    private void packStruct(int numOfItems) throws FrpcDataException {
         int octets = 0;
         while ((numOfItems >> (octets << 3)) > 255 && octets < 7) {
             octets++;
@@ -230,17 +213,17 @@ public class FrpcMarshaller {
                 outputStream.write((numOfItems >> (i << 3)) & 0xff);
             }
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing struct value", e);
         }
     }
 
-    public void packStructMember(String memeberName) throws FrpcDataException {
+    private void packStructMember(String memberName) throws FrpcDataException {
         try {
-            outputStream.write(memeberName.length());
+            outputStream.write(memberName.length());
 
-            outputStream.write(memeberName.getBytes());
+            outputStream.write(memberName.getBytes());
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing struct member", e);
         }
     }
 
@@ -248,7 +231,7 @@ public class FrpcMarshaller {
         try {
             outputStream.write(FrpcConstants.TYPE_NULL);
         } catch (IOException e) {
-            throw new FrpcDataException("IO exception when sending frpc request: " + e);
+            throw new FrpcDataException("Error occurred while writing null value", e);
         }
     }
 
@@ -304,8 +287,6 @@ public class FrpcMarshaller {
             packInt((Long) item);
         } else if (item instanceof String) {
             packString((String) item);
-        } else if (item instanceof ByteBuffer) {
-            packBinary((ByteBuffer) item);
         } else if (item instanceof Boolean) {
             packBool((Boolean) item);
         } else if (item instanceof Map<?, ?>) {

@@ -1,6 +1,6 @@
 package cz.seznam.frpc.client;
 
-import cz.seznam.frpc.common.FrpcResponseUtils;
+import cz.seznam.frpc.core.FrpcResponseUtils;
 import org.apache.commons.lang3.ClassUtils;
 
 import java.util.Map;
@@ -40,7 +40,7 @@ abstract class AbstractFrpcCallResult<T> {
 
     @SuppressWarnings("unchecked")
     public <U> U as(Class<U> type) {
-        // if this instance wraps a FRPC error, the only type we can convert it is a Map
+        // if this instance wraps a FRPC error, the only type we can convert it to is a Map
         if(isFrpcError() && type != Map.class) {
             throw createError();
         }

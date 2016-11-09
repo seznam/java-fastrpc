@@ -1,9 +1,11 @@
 package cz.seznam.frpc.client;
 
-import cz.seznam.frpc.common.ByteArrayFrpcMarshaller;
-import cz.seznam.frpc.common.FrpcDataException;
-import cz.seznam.frpc.common.FrpcUnmarshaller;
+import cz.seznam.frpc.core.transport.FrpcRequest;
+import cz.seznam.frpc.core.transport.FrpcRequestWriter;
+import cz.seznam.frpc.core.transport.FrpcResponseReader;
+import cz.seznam.frpc.core.transport.Protocol;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
@@ -13,6 +15,7 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -28,6 +31,7 @@ public class FrpcMethodCall {
 
     private HttpClient client;
     private HttpPost request;
+    private Protocol protocol;
     private List<Object> implicitParameters;
     private Map<String, String> headers;
     private int maxAttemptCount;
@@ -40,11 +44,12 @@ public class FrpcMethodCall {
     private String method;
     private List<Object> parameters;
 
-    FrpcMethodCall(HttpClient client, HttpPost request, List<Object> implicitParameters,
+    FrpcMethodCall(HttpClient client, HttpPost request, Protocol protocol, List<Object> implicitParameters,
                    Map<String, String> headers, int maxAttemptCount, long retryDelay, TimeUnit retryDelayTimeUnit,
                    String method, List<Object> parameters) {
         this.client = client;
         this.request = request;
+        this.protocol = protocol;
         this.implicitParameters = implicitParameters == null ? Collections.emptyList() : implicitParameters;
         this.headers = headers == null ? Collections.emptyMap() : headers;
         this.maxAttemptCount = maxAttemptCount;
@@ -120,42 +125,37 @@ public class FrpcMethodCall {
         do {
             attempts++;
             try {
-                // prepare marshaller
-                ByteArrayFrpcMarshaller marshaller = new ByteArrayFrpcMarshaller();
-                // start content by packing method name
-                marshaller.packMagic();
-                marshaller.packMethodCall(method);
-
-                // add implicit parameters
-                for(Object implicitParam : implicitParameters) {
-                    marshaller.packItem(implicitParam);
-                }
-
-                // marshall params given to this method
-                for(Object param : parameters) {
-                    marshaller.packItem(param);
-                }
+                // get FrpcRequestWriter for current protocol
+                FrpcRequestWriter requestWriter = FrpcRequestWriter.forProtocol(protocol);
+                // create FrpcRequest
+                FrpcRequest frpcRequest = new FrpcRequest(method, implicitParameters, parameters);
+                // write it
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                requestWriter.write(frpcRequest, baos);
 
                 // prepare the request
                 prepareRequest();
                 // set body
-                request.setEntity(new ByteArrayEntity(marshaller.getBytes()));
+                request.setEntity(new ByteArrayEntity(baos.toByteArray()));
                 // send it
                 HttpResponse response = client.execute(request);
 
-                // unmarshall the response body into an object
+                // get response reader for current protocol
+                FrpcResponseReader responseReader = FrpcResponseReader.forProtocol(protocol);
+                // get response body and content length
                 InputStream body = response.getEntity().getContent();
+                long contentLength = response.getEntity().getContentLength();
                 try {
-                    FrpcUnmarshaller unmarshaller = new FrpcUnmarshaller(body);
-                    Object responseObject = unmarshaller.unmarshallObject();
+                    // unmarshall the response body into an object
+                    Object responseObject = responseReader.read(body, contentLength);
                     // create FRPC result out the unmarshalled response
-                    output =  new FrpcCallResult(responseObject, response.getStatusLine().getStatusCode());
+                    output = new FrpcCallResult(responseObject, response.getStatusLine().getStatusCode());
                 } finally {
                     EntityUtils.consumeQuietly(response.getEntity());
                 }
                 // done, break the cycle
                 break;
-            } catch (FrpcDataException | IOException e) {
+            } catch (IOException e) {
                 if(attempts == maxAttemptCount) {
                     throw new FrpcCallException("An error occurred repeatedly (" + maxAttemptCount + " times) while trying to call FRPC method " + method, e);
                 }
@@ -184,8 +184,12 @@ public class FrpcMethodCall {
             }
             request.setConfig(configBuilder.build());
         }
+        // add content-type header
+        request.addHeader(HttpHeaders.CONTENT_TYPE, protocol.getContentType());
         // set headers
         headers.forEach(request::setHeader);
     }
+
+
 
 }

@@ -1,6 +1,6 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.common.FrpcTypes;
+import cz.seznam.frpc.core.FrpcTypes;
 import cz.seznam.frpc.server.annotations.FrpcIgnore;
 import cz.seznam.frpc.server.annotations.FrpcMethod;
 import org.apache.commons.lang3.StringUtils;

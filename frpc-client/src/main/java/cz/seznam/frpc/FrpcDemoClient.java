@@ -12,21 +12,21 @@ public class FrpcDemoClient
         FrpcClient client = new FrpcClient("http://localhost:9898/RPC2");
 
         // unwrapping takes care of single-valued responses
-        Integer sum = client.call("numberOperations.add", 3, 2).unwrap().as(Integer.class);
+        Long sum = client.call("numberOperations.add", 3, 2).unwrap().as(Long.class);
         System.out.println("Result of numberOperations.add using unwrap(): " + sum);
 
         // and there is even a shorthand for it
-        Integer sum2 = client.callAndUnwrap("numberOperations.add", 3, 2).as(Integer.class);
+        Long sum2 = client.callAndUnwrap("numberOperations.add", 3, 2).as(Long.class);
         System.out.println("Result of numberOperations.add using callAndUnwrap(): " + sum2);
 
         // yet it's not mandatory, this is equivalent to previous call
-        Integer sum3 = client.call("numberOperations.add", 3, 2).asStruct().get("result").as(Integer.class);
+        Long sum3 = client.call("numberOperations.add", 3, 2).asStruct().get("result").as(Long.class);
         System.out.println("Result of numberOperations.add using asStruct().get(): " + sum3);
 
         // nested structures can be retrieved using "get" method of structured result
         // "getStruct" comes in handy when the name to get is again a structure
-        Integer multiplication = client.call("numberOperations.multiply", 3, 2)
-                .asStruct().getStruct("result").get("multiplication").as(Integer.class);
+        Long multiplication = client.call("numberOperations.multiply", 3, 2)
+                .asStruct().getStruct("result").get("multiplication").as(Long.class);
         System.out.println("Result of numberOperations.multiply (multiple nesting): " + multiplication);
 
         // nothing special here, just a call...
@@ -50,7 +50,8 @@ public class FrpcDemoClient
         System.out.println("Result of collectionOperations.sort returned as Set<String>: " + sortedAsSet);
 
         // ... and pretty much any other collection type
-        LinkedBlockingDeque<String> sortedAsDequeue = client.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"))
+        LinkedBlockingDeque<String> sortedAsDequeue = client.call("collectionOperations.sort", Arrays
+                .asList("x", "a", "c", "b"))
                 .unwrap().asArrayOf(String.class).asCollection(LinkedBlockingDeque::new);
         System.out.println("Result of collectionOperations.sort returned as custom collection type of Strings (LinkedBlockingDeque): " + sortedAsDequeue);
 

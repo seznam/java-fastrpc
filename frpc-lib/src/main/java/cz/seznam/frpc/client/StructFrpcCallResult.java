@@ -1,6 +1,6 @@
 package cz.seznam.frpc.client;
 
-import cz.seznam.frpc.common.FrpcResponseUtils;
+import cz.seznam.frpc.core.FrpcResponseUtils;
 
 import java.util.HashMap;
 import java.util.Map;

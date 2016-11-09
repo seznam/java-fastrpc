@@ -1,6 +1,8 @@
-package cz.seznam.frpc.common;
+package cz.seznam.frpc.core.deserialization;
 
-import java.io.ByteArrayInputStream;
+import cz.seznam.frpc.core.FrpcConstants;
+import cz.seznam.frpc.core.FrpcDataException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -15,17 +17,81 @@ import java.util.Objects;
  */
 public class FrpcUnmarshaller {
 
-    private InputStream input;
-
-    public FrpcUnmarshaller(byte[] data) {
-        this(new ByteArrayInputStream(Objects.requireNonNull(data)));
-    }
+    protected InputStream input;
 
     public FrpcUnmarshaller(InputStream inputStream) {
-        input = Objects.requireNonNull(inputStream);
+        input = Objects.requireNonNull(inputStream, "Input stream must not be null");
     }
 
-    private int read() throws FrpcDataException {
+    public String unmarshallMethodName() throws FrpcDataException {
+        int data = read();
+
+        // 0xCA 0x11 = CALL
+        if (data == FrpcConstants.MAGIC_NUMBER_FIRST) {
+            data = read(3); // major version | minor version | 8+3
+        }
+
+        // 01101 000 - method call
+        if ((data & FrpcConstants.MASK_TYPE) == FrpcConstants.TYPE_METHOD_CALL) {
+            data = read(); // name size
+            return readMethodName(data);
+        }
+
+        throw new FrpcDataException("Unable to decode method name");
+    }
+
+    public Object unmarshallObject() throws FrpcDataException {
+        Object result;
+        int data = read();
+
+        if (data == FrpcConstants.MAGIC_NUMBER_FIRST) {
+            data = read(3);
+        }
+        switch (data & FrpcConstants.MASK_TYPE) {
+            case FrpcConstants.TYPE_METHOD_RESPONSE:
+                result = unmarshallObject();
+                break;
+            case FrpcConstants.TYPE_FAULT:
+                result = unmarshallFault(data);
+                break;
+            case FrpcConstants.TYPE_STRING:
+                result = unmarshallString(data);
+                break;
+            case FrpcConstants.TYPE_DOUBLE:
+                result = unmarshallFloatingPointType(data);
+                break;
+            case FrpcConstants.TYPE_INT_POS:
+                result = unmarshallIntegralType(data, true);
+                break;
+            case FrpcConstants.TYPE_INT_NEG:
+                result = unmarshallIntegralType(data, false);
+                break;
+            case FrpcConstants.TYPE_BOOL:
+                result = unmarshallBoolean(data);
+                break;
+            case FrpcConstants.TYPE_ARRAY:
+                result = unmarshallArray(data);
+                break;
+            case FrpcConstants.TYPE_STRUCT:
+                result = unmarshallStruct(data);
+                break;
+            case FrpcConstants.TYPE_DATETIME:
+                result = unmarshallDateTime(data);
+                break;
+            case FrpcConstants.TYPE_BINARY:
+                result = unmarshallBinary(data);
+                break;
+            case FrpcConstants.TYPE_NULL:
+                result = null;
+                break;
+            default:
+                throw new FrpcDataException("Error in unmarshalling: uknown frpc data type! "
+                        + (data & FrpcConstants.MASK_TYPE));
+        }
+        return result;
+    }
+
+    protected int read() throws FrpcDataException {
         int data;
         try {
             data = input.read();
@@ -39,7 +105,7 @@ public class FrpcUnmarshaller {
         return data;
     }
 
-    private int read(int offset) throws FrpcDataException {
+    protected int read(int offset) throws FrpcDataException {
         int data;
         for (int i = 0; i < offset; i++) {
             data = read();
@@ -217,23 +283,6 @@ public class FrpcUnmarshaller {
         return binary;
     }
 
-    public String unmarshallMethodName() throws FrpcDataException {
-        int data = read();
-
-        // 0xCA 0x11 = CALL
-        if (data == FrpcConstants.MAGIC_NUMBER_FIRST) {
-            data = read(3); // major version | minor version | 8+3
-        }
-
-        // 01101 000 - method call
-        if ((data & FrpcConstants.MASK_TYPE) == FrpcConstants.TYPE_METHOD_CALL) {
-            data = read(); // name size
-            return readMethodName(data);
-        }
-
-        throw new FrpcDataException("Unable to decode method name");
-    }
-
     private String readMethodName(int length) throws FrpcDataException {
         byte[] arr = new byte[length];
         for (int i = 0; i < length; ++i) {
@@ -242,55 +291,6 @@ public class FrpcUnmarshaller {
         return new String(arr);
     }
 
-    public Object unmarshallObject() throws FrpcDataException {
-        Object result;
-        int data = read();
 
-        if (data == FrpcConstants.MAGIC_NUMBER_FIRST) {
-            data = read(3);
-        }
-        switch (data & FrpcConstants.MASK_TYPE) {
-            case FrpcConstants.TYPE_METHOD_RESPONSE:
-                result = unmarshallObject();
-                break;
-            case FrpcConstants.TYPE_FAULT:
-                result = unmarshallFault(data);
-                break;
-            case FrpcConstants.TYPE_STRING:
-                result = unmarshallString(data);
-                break;
-            case FrpcConstants.TYPE_DOUBLE:
-                result = unmarshallFloatingPointType(data);
-                break;
-            case FrpcConstants.TYPE_INT_POS:
-                result = unmarshallIntegralType(data, true);
-                break;
-            case FrpcConstants.TYPE_INT_NEG:
-                result = unmarshallIntegralType(data, false);
-                break;
-            case FrpcConstants.TYPE_BOOL:
-                result = unmarshallBoolean(data);
-                break;
-            case FrpcConstants.TYPE_ARRAY:
-                result = unmarshallArray(data);
-                break;
-            case FrpcConstants.TYPE_STRUCT:
-                result = unmarshallStruct(data);
-                break;
-            case FrpcConstants.TYPE_DATETIME:
-                result = unmarshallDateTime(data);
-                break;
-            case FrpcConstants.TYPE_BINARY:
-                result = unmarshallBinary(data);
-                break;
-            case FrpcConstants.TYPE_NULL:
-                result = null;
-                break;
-            default:
-                throw new FrpcDataException("Error in unmarshalling: uknown frpc data type! "
-                        + (data & FrpcConstants.MASK_TYPE));
-        }
-        return result;
-    }
 
 }

@@ -1,4 +1,4 @@
-package cz.seznam.frpc.common;
+package cz.seznam.frpc.core;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

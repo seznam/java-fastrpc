@@ -1,10 +1,9 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.common.FrpcUnmarshaller;
+import cz.seznam.frpc.core.transport.FrpcRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
 
@@ -25,12 +24,9 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
     }
 
     @Override
-    public FrpcRequestProcessingResult process(InputStream requestBody) throws Exception {
-        // create FRPC unmarshaller
-        FrpcUnmarshaller unmarshaller = new FrpcUnmarshaller(requestBody);
-
-        // try to unmarshall method name
-        String requestMethodName = unmarshaller.unmarshallMethodName();
+    public FrpcRequestProcessingResult process(FrpcRequest frpcRequest) throws Exception {
+        // get request method name
+        String requestMethodName = frpcRequest.getMethodName();
         LOGGER.debug("Unmarshalled FRPC method name: {}", requestMethodName);
         // check if there is a dot somewhere in the method name
         int lastDotIndex = requestMethodName.lastIndexOf('.');
@@ -54,11 +50,11 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
                 handlerName);
 
         // invoke the method
-        return invokeHandler(handlerName, handlerMethodName, requestMethodName, unmarshaller);
+        return invokeHandler(handlerName, handlerMethodName, requestMethodName, frpcRequest.getParametersAsArray());
     }
 
     private FrpcRequestProcessingResult invokeHandler(String handlerName, String handlerMethodName,
-                                                      String requestMethodName, FrpcUnmarshaller unmarshaller)
+                                                      String requestMethodName, Object[] parameters)
             throws Exception {
         // try to find the handler first
         FrpcMethodMetaDataProviderAndHandler methodHandler = handlerMapping.get(handlerName);
@@ -67,14 +63,15 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
             throw new RuntimeException("There is no handler mapped to prefix \"" + handlerName + "\"");
         }
 
-        // getResult the method argument types resolver
+        // get the method argument types resolver
         FrpcMethodMetaDataProvider methodMetaDataProvider = methodHandler.getMethodMetaDataProvider();
-        // getResult method metadata
+        // get method metadata
         FrpcMethodMetaData methodMetaData = methodMetaDataProvider.getMethodMetaData(handlerMethodName);
         Class<?>[] parameterTypes = methodMetaData.getParameterTypes();
 
         // try to unmarshall arguments according to method parameter types
-        Object[] arguments = FrpcServerUtils.unmarshallMethodArguments(requestMethodName, parameterTypes, unmarshaller);
+        Object[] arguments = FrpcServerUtils
+                .checkAndconvertMethodParameters(requestMethodName, parameterTypes, parameters);
 
         // call the method handler
         Object methodResult = methodHandler.getFrpcHandler().handleFrpcMethodCall(handlerMethodName, arguments);

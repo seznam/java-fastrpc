@@ -1,4 +1,4 @@
-package cz.seznam.frpc.common;
+package cz.seznam.frpc.core;
 
 import org.apache.commons.lang3.ClassUtils;
 
