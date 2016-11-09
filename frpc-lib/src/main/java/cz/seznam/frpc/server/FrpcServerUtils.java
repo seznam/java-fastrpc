@@ -9,6 +9,7 @@ import org.eclipse.jetty.server.handler.ContextHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -22,6 +23,8 @@ import java.util.stream.Collectors;
 public class FrpcServerUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FrpcServerUtils.class);
+
+    private static final Object CANNOT_CONVERT = new Object();
 
     /**
      * Convenience method for calling {@link #addDefaultFrpcHandler(Server, String, FrpcHandlerMapping, boolean)} with
@@ -153,24 +156,20 @@ public class FrpcServerUtils {
 
     private static Object convertParameter(String requestMethodName, Class<?>[] methodParameterTypes, int i,
                                            Object parameter) {
-        if(parameter == null) {
-            LOGGER.debug("Setting null as argument #{}", i + 1);
-            return null;
-        } else {
-            // otherwise try to convert the argument into something compatible with current parameter type
-            Object convertedArgument = convertToCompatibleInstance(methodParameterTypes[i], parameter);
-            if(convertedArgument == null) {
-                throw new IllegalArgumentException(
-                        "Error while reading method arguments. "
-                                + getMethodDescription(requestMethodName, methodParameterTypes)
-                                + " Argument no. " + (i + 1) + " is then expected to be "
-                                + methodParameterTypes[i].getSimpleName() + " but an object of type "
-                                + parameter.getClass().getSimpleName() + " was given");
-            }
-            // add it to the array of parameters
-            LOGGER.debug("Setting {} as argument #{}", convertedArgument, i + 1);
-            return convertedArgument;
+        // try to convert the argument into something compatible with current parameter type
+        Object convertedArgument = convertToCompatibleInstance(methodParameterTypes[i], parameter);
+        if(convertedArgument == CANNOT_CONVERT) {
+            throw new IllegalArgumentException(
+                    "Error while reading method arguments. "
+                            + getMethodDescription(requestMethodName, methodParameterTypes)
+                            + " Argument #" + (i + 1) + " is then expected to be "
+                            + methodParameterTypes[i].getSimpleName() + " but "
+                            + (parameter == null ? "null" : " of type " + parameter.getClass().getSimpleName())
+                            + " was given");
         }
+        // add it to the array of parameters
+        LOGGER.debug("Setting {} as argument #{}", convertedArgument, i + 1);
+        return convertedArgument;
     }
 
     private static String getMethodDescription(String methodName, Class<?>[] parameterTypes) {
@@ -181,6 +180,11 @@ public class FrpcServerUtils {
 
     private static Object convertToCompatibleInstance(Class<?> methodParameterType, Object parameter) {
         LOGGER.debug("Trying to convert argument {} into something compatible with {}", parameter, methodParameterType);
+        // if the argument is null
+        if(parameter == null) {
+            // it will be compatible with any type except for primitives
+            return methodParameterType.isPrimitive() ? CANNOT_CONVERT : null;
+        }
         // getResult boxed method parameter type
         Class<?> boxedMethodParameterType = ClassUtils.primitiveToWrapper(methodParameterType);
         // check if argument is instance of given type or if they are compatible numbers
@@ -198,6 +202,29 @@ public class FrpcServerUtils {
                     + " implicit widening conversion.", parameter, methodParameterType);
             return parameter;
         }
+        // check if both classes are array types
+        if(boxedMethodParameterType.isArray() && boxedParameterType.isArray()) {
+            // if they are, try to convert them into compatible types
+            LOGGER.debug("Both argument type and method argument type are array types, trying to create an array that" +
+                    " will work");
+            // create new array of desired type
+            Class<?> arrayType = boxedMethodParameterType.getComponentType();
+            Object newArray = Array.newInstance(arrayType, Array.getLength(parameter));
+            // iterate all elements of given array
+            for (int i = 0; i < Array.getLength(parameter); i++) {
+                // try to convert object in given array at current index into something compatible with desired type
+                Object converted = convertToCompatibleInstance(arrayType, Array.get(parameter, i));
+                // if it could be converted, store it in the new array
+                if(converted != CANNOT_CONVERT) {
+                    Array.set(newArray, i, converted);
+                } else {
+                    // otherwise this parameter could not be converted, return CANNOT_CONVERT
+                    return CANNOT_CONVERT;
+                }
+            }
+            // all elements converted successfully, return new array
+            return newArray;
+        }
         // if the method parameter type is a list and argument is an array, convert it into list
         if(boxedMethodParameterType == List.class && boxedParameterType == Object[].class) {
             LOGGER.debug("Argument {} is an object array, converting it into List.", parameter, methodParameterType);
@@ -209,7 +236,7 @@ public class FrpcServerUtils {
             return Arrays.stream((Object[]) parameter).collect(Collectors.toSet());
         }
         // if none of the above is true, given argument is not compatible with given type
-        return null;
+        return CANNOT_CONVERT;
     }
 
 }

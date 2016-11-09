@@ -4,6 +4,9 @@ import cz.seznam.frpc.client.FrpcClient;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.stream.Collectors;
+
+import static java.util.Arrays.asList;
 
 public class FrpcDemoClient
 {
@@ -34,24 +37,31 @@ public class FrpcDemoClient
                 .unwrap().as(Integer.class);
         System.out.println("Result of arrayOperations.indexOf: " + index);
 
+        // array containing other complex types work too
+        List<Object[]> list = client.call("arrayOperations.getFirst",
+                (Object) new List[]{asList(asList(1, 2), asList(3, 4)), asList(asList(5, 6), asList(7, 8))})
+                .unwrap().asArrayOf(Object[].class).asList();
+        System.out.println("Result of arrayOperations.getFirst: " + list.stream().map(Arrays::toString).collect(
+                Collectors.joining(",", "[", "]")));
+
         // with asArrayOf one can specify type of an array so that it can be returned in a type-safe way
-        String[] withoutNulls = client.call("collectionOperations.removeNulls", Arrays.asList("x", null, "y", null, "z", null))
+        String[] withoutNulls = client.call("collectionOperations.removeNulls", asList("x", null, "y", null, "z", null))
                 .unwrap().asArrayOf(String.class).asArray();
         System.out.println("Result of collectionOperations.removeNulls returned as String[]: " + Arrays.toString(withoutNulls));
 
         // arrays can be implicitly converted to Lists...
-        List<String> sorted = client.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"))
+        List<String> sorted = client.call("collectionOperations.sort", asList("x", "a", "c", "b"))
                 .unwrap().asArrayOf(String.class).asList();
         System.out.println("Result of collectionOperations.sort returned as List<String>: " + sorted);
 
         // ... Sets ...
-        Set<String> sortedAsSet = client.call("collectionOperations.sort", Arrays.asList("x", "a", "c", "b"))
+        Set<String> sortedAsSet = client.call("collectionOperations.sort", asList("x", "a", "c", "b"))
                 .unwrap().asArrayOf(String.class).asSet();
         System.out.println("Result of collectionOperations.sort returned as Set<String>: " + sortedAsSet);
 
         // ... and pretty much any other collection type
-        LinkedBlockingDeque<String> sortedAsDequeue = client.call("collectionOperations.sort", Arrays
-                .asList("x", "a", "c", "b"))
+        LinkedBlockingDeque<String> sortedAsDequeue = client.call("collectionOperations.sort",
+                asList("x", "a", "c", "b"))
                 .unwrap().asArrayOf(String.class).asCollection(LinkedBlockingDeque::new);
         System.out.println("Result of collectionOperations.sort returned as custom collection type of Strings (LinkedBlockingDeque): " + sortedAsDequeue);
 

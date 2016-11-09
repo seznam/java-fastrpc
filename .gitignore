@@ -1,2 +1,5 @@
 .idea
 */sklik-frpc-*.iml
+frpc-lib/target
+frpc-client/target
+frpc-server/target
