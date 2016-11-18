@@ -1,6 +1,6 @@
 package cz.seznam.frpc.core.transport;
 
-import cz.seznam.frpc.core.deserialization.FixedLengthFrpcUnmarshaller;
+import cz.seznam.frpc.core.deserialization.CountingFrpcUnmarshaller;
 import cz.seznam.frpc.core.deserialization.FrpcUnmarshaller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,13 +18,18 @@ public class BinaryFrpcResponseReader implements FrpcResponseReader {
     public Object read(InputStream inputStream, long contentLength) throws FrpcTransportException {
         // create unmarshaller, either content length aware one or generic one
         FrpcUnmarshaller unmarshaller = contentLength >= 0 ?
-                new FixedLengthFrpcUnmarshaller(inputStream, contentLength) : new FrpcUnmarshaller(inputStream);
+                new CountingFrpcUnmarshaller(inputStream) : new FrpcUnmarshaller(inputStream);
         // unmarshall one object
-        Object response = unmarshaller.unmarshallObject();
-        // if the content length is specified, check if there is more data in the stream
-        if(contentLength >= 0 && !((FixedLengthFrpcUnmarshaller) unmarshaller).isFinished()) {
-            LOGGER.error("Error while reading response data. Content length was specified as {}, and one object was " +
-                    "read from the stream, yet there is still data in the stream. Ignoring that data.", contentLength);
+        Object response = unmarshaller.readResponse();
+        // if the content length is specified
+        if (contentLength >= 0) {
+            // check if we read exactly that many bytes of data
+            CountingFrpcUnmarshaller countingFrpcUnmarshaller = (CountingFrpcUnmarshaller) unmarshaller;
+            if (countingFrpcUnmarshaller.getBytesRead() != contentLength) {
+                LOGGER.error("Content length does not reflect the actual number of bytes of data, content length was" +
+                                " specified as {}, yet {} bytes were read from the stream", contentLength,
+                        countingFrpcUnmarshaller.getBytesRead());
+            }
         }
         // return the response object
         return response;

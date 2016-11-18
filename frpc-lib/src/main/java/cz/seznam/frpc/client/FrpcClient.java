@@ -193,8 +193,4 @@ public class FrpcClient {
         return prepareCall(method, params).getResult();
     }
 
-    public UnwrappedFrpcCallResult callAndUnwrap(String method, Object... params) {
-        return prepareCall(method, params).getResult().unwrap();
-    }
-
 }

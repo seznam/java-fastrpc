@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Just a simple example class publishing implementing a {@code FRPC} method.
+ * Just a simple example class implementing a {@code FRPC} method.
  *
  * @author David Moidl david.moidl@firma.seznam.cz
  */

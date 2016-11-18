@@ -1,6 +1,5 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.core.deserialization.FrpcUnmarshaller;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.server.Handler;
@@ -102,31 +101,7 @@ public class FrpcServerUtils {
         return contextHandler;
     }
 
-    // TODO: doc
-    public static Object[] unmarshallMethodParameters(String requestMethodName, Class<?>[] methodParameterTypes,
-                                                      FrpcUnmarshaller unmarshaller) {
-        LOGGER.debug("Trying to unmarshall arguments of method \"{}\" according to these parameter types: {}",
-                requestMethodName, methodParameterTypes);
-        // try to unmarshall as many objects as there are argument types
-        Object[] arguments = new Object[methodParameterTypes.length];
-        for(int i = 0; i < arguments.length; i++) {
-            // try to unmarshall one parameter
-            Object argument;
-            try {
-                argument = unmarshaller.unmarshallObject();
-                LOGGER.debug("Unmarshalled {} as method argument #{}", argument, i + 1);
-            } catch (Exception e) {
-                throw new IllegalStateException(getMethodDescription(requestMethodName, methodParameterTypes)
-                        + " There was an error while reading parameter #" + (i + 1), e);
-            }
-            // if the argument is null, just store it in the arguments array
-            arguments[i] = convertParameter(requestMethodName, methodParameterTypes, i, argument);
-        }
-        // return unmarshalled arguments
-        return arguments;
-    }
-
-    public static Object[] checkAndconvertMethodParameters(String requestMethodName, Class<?>[] methodParameterTypes,
+    public static Object[] checkAndConvertMethodParameters(String requestMethodName, Class<?>[] methodParameterTypes,
                                                            Object[] parameters) {
         LOGGER.debug("Trying to convert arguments {} given to method \"{}\" to these parameter types: {}",
                 parameters, requestMethodName, methodParameterTypes);
@@ -158,6 +133,7 @@ public class FrpcServerUtils {
                                            Object parameter) {
         // try to convert the argument into something compatible with current parameter type
         Object convertedArgument = convertToCompatibleInstance(methodParameterTypes[i], parameter);
+        // if we cannot convert the parameter into a value compatible with required type, throw an exception
         if(convertedArgument == CANNOT_CONVERT) {
             throw new IllegalArgumentException(
                     "Error while reading method arguments. "

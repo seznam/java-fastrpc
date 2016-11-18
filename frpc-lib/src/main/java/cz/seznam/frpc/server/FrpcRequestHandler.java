@@ -15,7 +15,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -30,7 +29,7 @@ public class FrpcRequestHandler extends AbstractHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(FrpcRequestHandler.class);
 
     private FrpcRequestProcessor frpcRequestProcessor;
-    private FrpcResultTransformer<Map<String, Object>> frpcResultTransformer;
+    private FrpcResultTransformer<?, ?> frpcResultTransformer;
 
     /**
      * Creates new instance with given {@code FrpcRequestProcessor} used to process requests and
@@ -50,7 +49,7 @@ public class FrpcRequestHandler extends AbstractHandler {
      * @param frpcResultTransformer result transformer used to transform results
      */
     public FrpcRequestHandler(FrpcRequestProcessor frpcRequestProcessor,
-                              FrpcResultTransformer<Map<String, Object>> frpcResultTransformer) {
+                              FrpcResultTransformer<?, ?> frpcResultTransformer) {
         this.frpcRequestProcessor = Objects.requireNonNull(frpcRequestProcessor);
         this.frpcResultTransformer = Objects.requireNonNull(frpcResultTransformer);
     }
@@ -65,7 +64,7 @@ public class FrpcRequestHandler extends AbstractHandler {
             throws IOException, ServletException {
         // only handle POST request as FRPC method calls
         if(HttpMethod.POST.is(request.getMethod())) {
-            Map<String, Object> result;
+            Object result;
             // try to handle the request
             Object handlerResult;
             // default protocol is XML-RPC
@@ -145,8 +144,8 @@ public class FrpcRequestHandler extends AbstractHandler {
     }
 
     private void addResponseHeaders(HttpServletResponse response) {
-        // response.addHeader(HttpHeader.ACCEPT.asString(), "text/xml, application/x-frpc");
-        response.addHeader(HttpHeader.ACCEPT.asString(), "text/xml");
+        response.addHeader(HttpHeader.ACCEPT.asString(), "text/xml, application/x-frpc");
+        // response.addHeader(HttpHeader.ACCEPT.asString(), "text/xml");
     }
 
 }

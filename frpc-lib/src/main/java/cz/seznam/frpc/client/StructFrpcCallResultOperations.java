@@ -13,4 +13,8 @@ public interface StructFrpcCallResultOperations<T extends AbstractFrpcCallResult
 
     public S getStruct(String key);
 
+    public ArrayFrpcCallResult<Object> getArray(String key);
+
+    public <A> ArrayFrpcCallResult<A> getArray(String key, Class<A> arrayType);
+
 }

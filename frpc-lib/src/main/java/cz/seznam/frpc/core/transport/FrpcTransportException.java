@@ -1,7 +1,7 @@
 package cz.seznam.frpc.core.transport;
 
 /**
- * General-purpose runtime exception to indicate any lower-level (transport) problems.
+ * General-purpose runtime exception to indicate any lower-level (transport) problem.
  *
  * @author David Moidl david.moidl@firma.seznam.cz
  */

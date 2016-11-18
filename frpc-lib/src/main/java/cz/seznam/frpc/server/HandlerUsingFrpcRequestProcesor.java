@@ -71,7 +71,7 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
 
         // try to unmarshall arguments according to method parameter types
         Object[] arguments = FrpcServerUtils
-                .checkAndconvertMethodParameters(requestMethodName, parameterTypes, parameters);
+                .checkAndConvertMethodParameters(requestMethodName, parameterTypes, parameters);
 
         // call the method handler
         Object methodResult = methodHandler.getFrpcHandler().handleFrpcMethodCall(handlerMethodName, arguments);

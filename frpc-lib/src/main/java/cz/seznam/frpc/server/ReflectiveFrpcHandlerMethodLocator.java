@@ -95,6 +95,10 @@ class ReflectiveFrpcHandlerMethodLocator implements FrpcHandlerMethodLocator {
     }
 
     private Method checkMethod(Method method) {
+        // check that method parameter types are compatible with this framework
+
+
+
         // iterate method params and check that all of them are compatible with FRPC
         for(Class<?> parameterType : method.getParameterTypes()) {
             if(!FrpcTypes.isCompatibleType(parameterType)) {

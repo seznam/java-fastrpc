@@ -110,10 +110,6 @@ public class FrpcMethodCall {
         return this;
     }
 
-    public UnwrappedFrpcCallResult getUnwrappedResult() {
-        return doRemoteInvocation().unwrap();
-    }
-
     public FrpcCallResult getResult() {
         return doRemoteInvocation();
     }
@@ -148,7 +144,7 @@ public class FrpcMethodCall {
                 try {
                     // unmarshall the response body into an object
                     Object responseObject = responseReader.read(body, contentLength);
-                    // create FRPC result out the unmarshalled response
+                    // create FRPC result out of the unmarshalled response
                     output = new FrpcCallResult(responseObject, response.getStatusLine().getStatusCode());
                 } finally {
                     EntityUtils.consumeQuietly(response.getEntity());
@@ -189,7 +185,5 @@ public class FrpcMethodCall {
         // set headers
         headers.forEach(request::setHeader);
     }
-
-
 
 }

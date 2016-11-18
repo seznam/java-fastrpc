@@ -9,6 +9,8 @@ public interface FrpcResponseWriter extends FrpcWriter<Object> {
 
     public void write(Object response, OutputStream outputStream) throws FrpcTransportException;
 
+    public void writeFault(FrpcFault fault, OutputStream outputStream) throws FrpcTransportException;
+
     public static FrpcResponseWriter forProtocol(Protocol protocol) {
         switch (protocol) {
             case FRPC:

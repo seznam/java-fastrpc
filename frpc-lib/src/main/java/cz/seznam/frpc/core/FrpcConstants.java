@@ -30,13 +30,11 @@ public class FrpcConstants {
 
     public static final int MASK_ADD = 0x7;
 
-    public static final int MASK_TYPE = 0xf8;
+    public static final int MASK = 0xf8;
 
     public static final byte[] MAGIC_NUMBER = {
             (byte) 0xca, 0x11, 0x2, 0x1
     };
-
-    public static final int MAGIC_NUMBER_FIRST = 0xca;
 
     public static final int DATE_YEAR_OFFSET = 1600;
 

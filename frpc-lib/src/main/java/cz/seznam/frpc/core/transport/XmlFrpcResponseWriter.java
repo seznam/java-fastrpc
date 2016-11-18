@@ -23,4 +23,16 @@ public class XmlFrpcResponseWriter implements FrpcResponseWriter {
         }
     }
 
+    @Override
+    public void writeFault(FrpcFault fault, OutputStream outputStream) throws FrpcTransportException {
+        // create new XmlRpcWriter
+        XmlRpcWriter writer = XmlRpcUtils.newXmlRpcWriter(outputStream);
+        // write the response
+        try {
+            writer.write(XmlRpcUtils.defaultRequestConfig(), fault.getStatusCode(), fault.getStatusMessage());
+        } catch (SAXException e) {
+            throw new FrpcTransportException("Error while writing XML-RPC response data", e);
+        }
+    }
+
 }

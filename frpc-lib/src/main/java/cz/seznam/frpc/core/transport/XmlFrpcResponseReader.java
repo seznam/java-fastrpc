@@ -1,7 +1,6 @@
 package cz.seznam.frpc.core.transport;
 
 import cz.seznam.frpc.core.FrpcDataException;
-import cz.seznam.frpc.core.FrpcResponseUtils;
 import cz.seznam.frpc.core.XmlRpcUtils;
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.common.TypeFactoryImpl;
@@ -36,7 +35,7 @@ public class XmlFrpcResponseReader implements FrpcResponseReader {
             if(requestParser.isSuccess()) {
                 response = requestParser.getResult();
             } else {
-                response = FrpcResponseUtils.response(requestParser.getErrorCode(), requestParser.getErrorMessage());
+                response = new FrpcFault(requestParser.getErrorCode(), requestParser.getErrorMessage());
             }
             // return the parsed object
             return response;

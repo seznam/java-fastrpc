@@ -15,7 +15,7 @@ class AbstractUnwrappedFrpcCallResult<T> extends AbstractFrpcCallResult<T> {
     }
 
     @Override
-    public boolean isFrpcError() {
+    public boolean isFault() {
         return statusCode != null && statusCode == 500;
     }
 

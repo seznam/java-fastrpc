@@ -42,7 +42,7 @@ public class FrpcHandlerMapping {
      */
     public void addHandler(String name, Object handler) {
         Objects.requireNonNull(handler);
-        createMapping(name, Objects.requireNonNull(handler).getClass(), () -> handler);
+        createMapping(Objects.requireNonNull(name), Objects.requireNonNull(handler).getClass(), () -> handler);
     }
 
     public void addHandler(String name, FrpcMethodMetaDataProvider methodMetaDataProvider, FrpcHandler handler) {

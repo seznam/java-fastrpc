@@ -17,8 +17,20 @@ public class ArrayFrpcCallResult<T> extends AbstractFrpcCallResult<Object[]> {
     }
 
     @Override
-    public boolean isFrpcError() {
+    public boolean isFault() {
         return false;
+    }
+
+    public FrpcCallResult get(int index) {
+        return new FrpcCallResult(doGet(index), httpResponseStatus);
+    }
+
+    public StructFrpcCallResult getStruct(int index) {
+        return get(index).asStruct();
+    }
+
+    public <T> ArrayFrpcCallResult<T> getArray(int index, Class<T> arrayType) {
+        return get(index).asArrayOf(arrayType);
     }
 
     @SuppressWarnings({"unchecked"})
@@ -38,12 +50,15 @@ public class ArrayFrpcCallResult<T> extends AbstractFrpcCallResult<Object[]> {
         return copyToCollection(new HashSet<>());
     }
 
-    public SortedSet<T> asSortedSet() {
-        return copyToCollection(new TreeSet<>());
-    }
-
     public <U extends Collection<T>> U asCollection(Supplier<U> collectionSupplier) {
         return copyToCollection(collectionSupplier.get());
+    }
+
+    protected Object doGet(int index) {
+        if(index < 0 || index > wrapped.length) {
+            throw new ArrayIndexOutOfBoundsException(index);
+        }
+        return wrapped[index];
     }
 
     @SuppressWarnings("unchecked")

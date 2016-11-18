@@ -1,8 +1,12 @@
 package cz.seznam.frpc.client;
 
-import cz.seznam.frpc.core.FrpcResponseUtils;
+import cz.seznam.frpc.core.transport.FrpcFault;
 import org.apache.commons.lang3.ClassUtils;
 
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -21,16 +25,22 @@ abstract class AbstractFrpcCallResult<T> {
     }
 
     public boolean isStruct() {
-        return wrapped instanceof Map;
+        return !isNull() && wrapped instanceof Map;
     }
 
     public boolean isArray() {
-        return wrapped instanceof Object[];
+        return !isNull() && wrapped.getClass().isArray();
     }
 
-    public abstract boolean isFrpcError();
+    public boolean isFault() {
+        return !isNull() && wrapped instanceof FrpcFault;
+    }
 
-    public T asObject() {
+    public boolean isNull() {
+        return wrapped == null;
+    }
+
+    public Object asObject() {
         return wrapped;
     }
 
@@ -40,17 +50,11 @@ abstract class AbstractFrpcCallResult<T> {
 
     @SuppressWarnings("unchecked")
     public <U> U as(Class<U> type) {
-        // if this instance wraps a FRPC error, the only type we can convert it to is a Map
-        if(isFrpcError() && type != Map.class) {
-            throw createError();
+        Objects.requireNonNull(type, "Type must not be null");
+        // check for primitive type and null value
+        if(wrapped == null && type.isPrimitive()) {
+            throw new NullPointerException("Cannot convert null value to type " + type.getName());
         }
-        // otherwise try to cast it
-        return cast(type);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <U> U cast(Class<U> type) {
-        Objects.requireNonNull(type);
         // check if the object is directly an instance of given type
         if(wrapped == null || type.isInstance(wrapped)) {
             // if it is, cast it and return it
@@ -67,31 +71,36 @@ abstract class AbstractFrpcCallResult<T> {
         if(boxedType == Double.class && boxedWrappedType == Float.class) {
             return type.cast(((Float) wrapped).doubleValue());
         }
-        // if none of the above worker, then we can't cast the name to required type
+        // or calendar
+        if(wrapped instanceof Calendar) {
+            // if date is desired instead
+            if(boxedType == Date.class) {
+                // just return the date
+                return (U) ((Calendar) wrapped).getTime();
+            }
+            // if LocalDateTime is needed
+            if(boxedType == LocalDateTime.class) {
+                Calendar calendar = ((Calendar) wrapped);
+                // convert Calendar -> Instant -> LocalDateTime
+                return (U) LocalDateTime.ofInstant(calendar.toInstant(), calendar.getTimeZone().toZoneId());
+            }
+            // if ZonedDateTime is needed
+            if(boxedType == ZonedDateTime.class) {
+                Calendar calendar = ((Calendar) wrapped);
+                // convert Calendar -> Instant -> ZonedDateTime
+                return (U) ZonedDateTime.ofInstant(calendar.toInstant(), calendar.getTimeZone().toZoneId());
+            }
+        }
+        // if none of the above worked, then we can't cast the name to required type
         throw new ClassCastException("Object of type " + getWrappedType() + " cannot be cast to " + type);
     }
 
     public <U> U mapTo(Function<T, U> mapper) {
-        return Objects.requireNonNull(mapper).apply(wrapped);
+        return Objects.requireNonNull(mapper, "Given mapping function must not be null").apply(wrapped);
     }
 
     protected Class<?> getWrappedType() {
         return wrapped == null ? Void.class : wrapped.getClass();
-    }
-
-    @SuppressWarnings("unchecked")
-    private FrpcErrorResultException createError() {
-        // try to get error message
-        String errorMessage = null;
-        if(this instanceof AbstractUnwrappedFrpcCallResult) {
-            errorMessage = ((AbstractUnwrappedFrpcCallResult) this).getStatusMessage();
-        } else if(wrapped instanceof Map) {
-            errorMessage = (String) ((Map<String, Object>) wrapped).get(FrpcResponseUtils.STATUS_KEY);
-        }
-        // instantiate FrpcCallException as the cause of the exception we are about to return
-        Exception callException = new FrpcCallException(errorMessage);
-        // create FrpcErrorResultException
-        return new FrpcErrorResultException("Server returned an internal server error.", callException);
     }
 
 }

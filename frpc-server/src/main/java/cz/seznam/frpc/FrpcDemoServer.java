@@ -14,7 +14,7 @@ import org.eclipse.jetty.server.Server;
 public class FrpcDemoServer {
 
     public static void main(String[] args) throws Exception {
-        // the mapping ties bussines-logic classes (handlers) with FRPC method names
+        // the mapping ties business-logic classes (handlers) with FRPC method names
         FrpcHandlerMapping handlerMapping = new FrpcHandlerMapping();
         // FRPC handler can be a single instance of any custom class
         handlerMapping.addHandler("numberOperations", new Calculator());
@@ -22,13 +22,15 @@ public class FrpcDemoServer {
         handlerMapping.addHandler("stringOperations", StringOperations.class);
         handlerMapping.addHandler("arrayOperations", ArrayOperations.class);
         handlerMapping.addHandler("binaryOperations", BinaryOperations.class);
+        handlerMapping.addHandler("otherOperations", OtherOperations.class);
         // or Supplier can be used to provide instances of handler class
         handlerMapping.addHandler("collectionOperations", CollectionOperations.class, CollectionOperations::new);
 
         /* Jetty is the default HTTP server and we have jetty-specific FrpcRequestHandler implementation, but feel free
            to use something completely different. The main logic is abstracted by interfaces FrpcRequestProcessor
            and FrpcResultTransformer which fit together and can be easily plugged in to pretty much any HTTP server
-           capable of returning request body as InputStream. */
+           capable of returning request body as InputStream. FRPC transport logic is then abstracted by
+           FrpcRequestReader and FrpcResponseWriter interfaces. */
         HttpConnectionFactory factory;
 
         Server server = new Server(9898);
