@@ -8,10 +8,10 @@ import java.util.Objects;
  *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
-class ReflectiveFrpcMethodMetaDataProvider implements FrpcMethodMetaDataProvider {
+class ReflectiveFrpcMethodMetaDataProvider extends CachingFrpcMethodMetaDataProvider {
 
     /**
-     * Method locator used to find Java methods by their names.
+     * Method locator used to find Java methods by names of corresponding {@code FRPC} methods.
      */
     private FrpcHandlerMethodLocator methodLocator;
 
@@ -25,8 +25,8 @@ class ReflectiveFrpcMethodMetaDataProvider implements FrpcMethodMetaDataProvider
     }
 
     @Override
-    public FrpcMethodMetaData getMethodMetaData(String methodFrpcName) throws NoSuchMethodException {
-        // try to find the right method by name
+    protected FrpcMethodMetaData doGetMethodMetaData(String methodFrpcName) throws NoSuchMethodException {
+        // try to find the right method by value
         Method method = methodLocator.locateMethodByFrpcName(methodFrpcName);
         // return method metadata
         return FrpcMethodMetaData.fromMethod(method);

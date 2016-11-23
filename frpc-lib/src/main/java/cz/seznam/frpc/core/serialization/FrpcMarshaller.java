@@ -297,11 +297,16 @@ public class FrpcMarshaller {
         } else if (object instanceof Boolean) {
             writeBool((Boolean) object);
         } else if (object instanceof Map<?, ?>) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> struct = (Map<String, Object>) object;
+            Map<?, ?> struct = (Map<?, ?>) object;
             writeStruct(struct.size());
-            for (Map.Entry<String, Object> entry : struct.entrySet()) {
-                writeStructMember(entry.getKey());
+            for (Map.Entry<?, ?> entry : struct.entrySet()) {
+                // check that the key is a string
+                Object key = entry.getKey();
+                if(!String.class.isInstance(key)) {
+                    throw new FrpcDataException(
+                            "Cannot serialize value " + key + " as map key, only String is valid type for map keys");
+                }
+                writeStructMember((String) entry.getKey());
                 writeObject(entry.getValue());
             }
         } else if (object instanceof Calendar) {

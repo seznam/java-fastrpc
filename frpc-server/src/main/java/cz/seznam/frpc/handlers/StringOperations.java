@@ -1,7 +1,5 @@
 package cz.seznam.frpc.handlers;
 
-import cz.seznam.frpc.server.annotations.FrpcMethod;
-
 import java.util.LinkedList;
 import java.util.List;
 
@@ -12,7 +10,6 @@ import java.util.List;
  */
 public class StringOperations {
 
-    @FrpcMethod(resultKey = "result")
     public List<Integer> indexOf(String str, String sub) {
         List<Integer> positions = new LinkedList<>();
 
@@ -30,7 +27,6 @@ public class StringOperations {
         return positions;
     }
 
-    @FrpcMethod(resultKey = "substring")
     public String sub(String source, int from, int to) {
         return source.substring(from, to);
     }

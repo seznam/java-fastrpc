@@ -27,7 +27,7 @@ class ReflectiveFrpcHandler implements FrpcHandler {
     @Override
     public Object handleFrpcMethodCall(String frpcMethodName, Object[] args) throws Exception {
         try {
-            // try to find method matching method name and number of parameters
+            // try to find method matching method value and number of parameters
             Method method = findMethod(frpcMethodName, args);
             // try to invoke it
             return method.invoke(supplier.get(), args);
@@ -39,7 +39,7 @@ class ReflectiveFrpcHandler implements FrpcHandler {
     }
 
     private Method findMethod(String methodName, Object[] args) throws NoSuchMethodException {
-        // try to find the method by name
+        // try to find the method by value
         Method nameMatchingMethod = methodLocator.locateMethodByFrpcName(methodName);
         // check that number of given arguments matches signature of given method
         if(nameMatchingMethod.getParameterCount() != args.length) {

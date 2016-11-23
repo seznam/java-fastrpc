@@ -13,20 +13,22 @@ public class FrpcRequestProcessingResult {
      */
     private Object methodResult;
     /**
-     * Possibly null (if the methodResult is a map). Specifies under which key the result will be stored in
-     * the result map.
+     * An instance of {@link FrpcMethodMetaData} providing information about the method used to carry out the request.
+     * This may be used for instance by {@link FrpcResultTransformer} to produce proper result based on whatever
+     * method-specific data it needs.
      */
-    private String methodResponseKey;
+    private FrpcMethodMetaData methodMetaData;
 
     /**
      * Creates new instance from given object and result key.
      *
      * @param methodResult result of {@code FRPC} method invocation
-     * @param methodResponseKey key (possibly null) under which to store the result in the response map
+     * @param methodMetaData instance of {@link FrpcMethodMetaData} providing information about the method used to
+     *                       carry out the request
      */
-    public FrpcRequestProcessingResult(Object methodResult, String methodResponseKey) {
+    public FrpcRequestProcessingResult(Object methodResult, FrpcMethodMetaData methodMetaData) {
         this.methodResult = methodResult;
-        this.methodResponseKey = methodResponseKey;
+        this.methodMetaData = methodMetaData;
     }
 
     /**
@@ -39,12 +41,13 @@ public class FrpcRequestProcessingResult {
     }
 
     /**
-     * Returns the key under which to store the result in the response map.
+     * Returns an instance of {@link FrpcMethodMetaData} providing information about the method used to carry out
+     * the request.
      *
-     * @return key (possibly null) under which to store the result in the response map
+     * @return an instance of {@link FrpcMethodMetaData} as described above
      */
-    public String getMethodResponseKey() {
-        return methodResponseKey;
+    public FrpcMethodMetaData getMethodMetaData() {
+        return methodMetaData;
     }
 
 }

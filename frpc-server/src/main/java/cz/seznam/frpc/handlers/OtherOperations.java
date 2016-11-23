@@ -1,8 +1,12 @@
 package cz.seznam.frpc.handlers;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.stream.Collectors;
 
 /**
+ * Just a simple example class implementing some {@code FRPC} methods.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class OtherOperations {
@@ -20,5 +24,9 @@ public class OtherOperations {
         return map;
     }
 
+    public List<String> flatten(ConcurrentSkipListMap<String, LinkedHashSet<List<String>>[]>[] value) {
+        return Arrays.stream(value).flatMap(e -> e.values().stream()).flatMap(Arrays::stream)
+                .flatMap(Collection::stream).flatMap(Collection::stream).collect(Collectors.toList());
+    }
 
 }

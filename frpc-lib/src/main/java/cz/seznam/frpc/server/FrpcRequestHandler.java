@@ -38,8 +38,7 @@ public class FrpcRequestHandler extends AbstractHandler {
      * @param frpcRequestProcessor request processor to be used to process incoming requests
      */
     public FrpcRequestHandler(FrpcRequestProcessor frpcRequestProcessor) {
-        this.frpcRequestProcessor = Objects.requireNonNull(frpcRequestProcessor);
-        this.frpcResultTransformer = new DefaultFrpcResultTransformer();
+        this(frpcRequestProcessor, new DefaultFrpcResultTransformer());
     }
 
     /**
@@ -89,6 +88,7 @@ public class FrpcRequestHandler extends AbstractHandler {
 
                 handlerResult = doHandle(request, protocol);
             } catch (Exception e) {
+                LOGGER.debug("Caught exception from method {}", request.getMethod(), e);
                 handlerResult = e;
             }
 
@@ -133,8 +133,14 @@ public class FrpcRequestHandler extends AbstractHandler {
         FrpcResponseWriter responseWriter = FrpcResponseWriter.forProtocol(protocol);
         // write response to byte array so that we can set content length header properly
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        // write result to the response
-        responseWriter.write(result, baos);
+        // check whether the result is not in fact a fault
+        if(result instanceof FrpcFault) {
+            // if it is, write fault
+            responseWriter.writeFault((FrpcFault) result, baos);
+        } else {
+            // write result to the response
+            responseWriter.write(result, baos);
+        }
         // set response properties
         response.setStatus(HttpStatus.OK_200);
         response.setContentType(protocol.getContentType());
@@ -145,7 +151,6 @@ public class FrpcRequestHandler extends AbstractHandler {
 
     private void addResponseHeaders(HttpServletResponse response) {
         response.addHeader(HttpHeader.ACCEPT.asString(), "text/xml, application/x-frpc");
-        // response.addHeader(HttpHeader.ACCEPT.asString(), "text/xml");
     }
 
 }

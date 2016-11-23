@@ -1,5 +1,6 @@
 package cz.seznam.frpc.client;
 
+import cz.seznam.frpc.core.FrpcTypes;
 import cz.seznam.frpc.core.transport.FrpcFault;
 import org.apache.commons.lang3.ClassUtils;
 
@@ -76,22 +77,20 @@ abstract class AbstractFrpcCallResult<T> {
             // if date is desired instead
             if(boxedType == Date.class) {
                 // just return the date
-                return (U) ((Calendar) wrapped).getTime();
+                return (U) FrpcTypes.calendarToDate(((Calendar) wrapped));
             }
             // if LocalDateTime is needed
             if(boxedType == LocalDateTime.class) {
-                Calendar calendar = ((Calendar) wrapped);
                 // convert Calendar -> Instant -> LocalDateTime
-                return (U) LocalDateTime.ofInstant(calendar.toInstant(), calendar.getTimeZone().toZoneId());
+                return (U) FrpcTypes.calendarToLocalDateTime(((Calendar) wrapped));
             }
             // if ZonedDateTime is needed
             if(boxedType == ZonedDateTime.class) {
-                Calendar calendar = ((Calendar) wrapped);
                 // convert Calendar -> Instant -> ZonedDateTime
-                return (U) ZonedDateTime.ofInstant(calendar.toInstant(), calendar.getTimeZone().toZoneId());
+                return (U) FrpcTypes.calendarToZonedDateTime(((Calendar) wrapped));
             }
         }
-        // if none of the above worked, then we can't cast the name to required type
+        // if none of the above worked, then we can't cast the value to required type
         throw new ClassCastException("Object of type " + getWrappedType() + " cannot be cast to " + type);
     }
 

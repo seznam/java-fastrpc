@@ -17,7 +17,7 @@ public class FrpcDemoClient
         System.out.println("Result of numberOperations.add using unwrap(): " + sum);
 
         // nested structures can be retrieved using "get" method of structured result
-        // "getStruct" comes in handy when the name to get is again a structure
+        // "getStruct" comes in handy when the value to get is again a structure
         Long multiplication = client.call("numberOperations.multiply", 3, 2).asStruct().get("multiplication")
                 .as(Long.class);
         System.out.println("Result of numberOperations.multiply (multiple nesting): " + multiplication);
@@ -76,6 +76,29 @@ public class FrpcDemoClient
         Void nullResult = client.call("binaryOperations./dev/null", "String to be obliterated")
                 .as(Void.class);
         System.out.println("Result of binaryOperations./dev/null: " + nullResult);
+
+        // complex types work as well
+        List<String> l1 = Arrays.asList("1", "2");
+        List<String> l2 = Arrays.asList("3", "4");
+        Set<List<String>> s = new HashSet<>();
+        s.add(l1);
+        s.add(l2);
+
+        List<String> l3 = Arrays.asList("ahoj", "test");
+        List<String> l4 = Arrays.asList("string", "StrinG");
+        Set<List<String>> s2 = new HashSet<>();
+        s2.add(l3);
+        s2.add(l4);
+
+        Map<String, List<Set<List<String>>>> m = new HashMap<>();
+        m.put("first", Arrays.asList(s, s2));
+        m.put("second", Arrays.asList(s, s2));
+
+        Object[] array = new Object[]{m, m};
+
+        List<String> flattenResult = client.call("otherOperations.flatten", (Object) array)
+                .asArrayOf(String.class).asList();
+        System.out.println("Result of otherOperations.flatten: " + flattenResult);
 
     }
 }

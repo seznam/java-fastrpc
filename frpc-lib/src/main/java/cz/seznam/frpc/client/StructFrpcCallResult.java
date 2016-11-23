@@ -33,7 +33,7 @@ public class StructFrpcCallResult extends AbstractFrpcCallResult<Map<String, Obj
 
     public FrpcCallResult get(String key) {
         checkKey(key);
-        // get the name of this resultKey
+        // get the value of this resultKey
         Object value = wrapped.get(key);
         // and create generic UnwrappedFrpcCallResult out of it
         return new FrpcCallResult(value, httpResponseStatus);

@@ -27,7 +27,7 @@ public class FrpcUnmarshaller {
     public FrpcRequest readRequest() {
         // read magic number
         readMagic();
-        // read method name
+        // read method value
         String methodName = readMethodCall();
         // read parameters
         List<Object> parameters = new ArrayList<>();
@@ -46,19 +46,42 @@ public class FrpcUnmarshaller {
     public Object readResponse() {
         // read magic number
         readMagic();
-        // make sure that we are reading method response
-        int data = read();
-        if((data & FrpcConstants.MASK) != FrpcConstants.TYPE_METHOD_RESPONSE) {
-            throw new FrpcDataException("The stream does not contain properly formed method response");
+        // make sure that we are reading method response or fault
+        int maskedData = read() & FrpcConstants.MASK;
+        // check if the response is a method response
+        if(maskedData == FrpcConstants.TYPE_METHOD_RESPONSE) {
+            // read single object
+            Object response = readObject();
+            // check if it's not the NO_MORE_OBJECTS marker
+            if(response == NO_MORE_OBJECTS) {
+                throw new FrpcDataException("The stream does not contain any response value");
+            }
+            // return the response
+            return response;
+        } else if(maskedData == FrpcConstants.TYPE_FAULT) {
+            // read status code
+            Object statusCode = readObject();
+            if(statusCode == NO_MORE_OBJECTS) {
+                throw new FrpcDataException(
+                        "Data indicates the stream contains a FRPC fault, yet no status code is present");
+            } else if(!(statusCode instanceof Integer)) {
+                throw new FrpcDataException(
+                        "Erro reading FRPC fault, the status code is not an Integer");
+            }
+            // read status message
+            Object statusMessage = readObject();
+            if(statusMessage == NO_MORE_OBJECTS) {
+                throw new FrpcDataException(
+                        "Data indicates the stream contains a FRPC fault, yet no status code is present");
+            } else if(statusMessage != null && !(statusMessage instanceof String)) {
+                throw new FrpcDataException(
+                        "Erro reading FRPC fault, the status message is not a String");
+            }
+            // create the fault
+            return new FrpcFault(((Integer) statusCode), ((String) statusMessage));
         }
-        // read single object
-        Object response = readObject();
-        // check if it's not the NO_MORE_OBJECTS marker
-        if(response == NO_MORE_OBJECTS) {
-            throw new FrpcDataException("The stream does not contain any response value");
-        }
-        // return the response
-        return response;
+        // we don't know how to read the response
+        throw new FrpcDataException("The stream does not contain properly formed method response");
     }
 
     private void readMagic() {
@@ -88,7 +111,7 @@ public class FrpcUnmarshaller {
         int data = read();
         // check that is is a method call
         if ((data & FrpcConstants.MASK) == FrpcConstants.TYPE_METHOD_CALL) {
-            // read the actual method name
+            // read the actual method value
             return readMethodName();
         } else {
             throw new FrpcDataException(
@@ -161,11 +184,11 @@ public class FrpcUnmarshaller {
         for (int i = 0; i <= octets; i++) {
             value |= (long) read() << (i << 3);
         }
-        // if the name should be negative, make it so
+        // if the value should be negative, make it so
         if(!positive) {
             value = -value;
         }
-        // if the name fits into int, return int instead
+        // if the value fits into int, return int instead
         if((int) value == value) {
             return (int) value;
         } else {
@@ -273,7 +296,7 @@ public class FrpcUnmarshaller {
     }
 
     private String readMethodName() throws FrpcDataException {
-        // read length of method name
+        // read length of method value
         int length = read();
 
         byte[] arr = new byte[length];

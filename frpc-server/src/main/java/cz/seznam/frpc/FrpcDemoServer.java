@@ -3,7 +3,6 @@ package cz.seznam.frpc;
 import cz.seznam.frpc.handlers.*;
 import cz.seznam.frpc.server.FrpcHandlerMapping;
 import cz.seznam.frpc.server.FrpcServerUtils;
-import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 
 /**
@@ -31,8 +30,6 @@ public class FrpcDemoServer {
            and FrpcResultTransformer which fit together and can be easily plugged in to pretty much any HTTP server
            capable of returning request body as InputStream. FRPC transport logic is then abstracted by
            FrpcRequestReader and FrpcResponseWriter interfaces. */
-        HttpConnectionFactory factory;
-
         Server server = new Server(9898);
 
         FrpcServerUtils.addDefaultFrpcHandler(server, "/RPC2", handlerMapping);

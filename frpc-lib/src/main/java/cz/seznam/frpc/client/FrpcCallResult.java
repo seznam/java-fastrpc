@@ -1,5 +1,7 @@
 package cz.seznam.frpc.client;
 
+import cz.seznam.frpc.core.transport.FrpcFault;
+
 import java.util.Map;
 
 /**
@@ -9,6 +11,13 @@ public class FrpcCallResult extends AbstractFrpcCallResult<Object> {
 
     FrpcCallResult(Object wrapped, int httpResponseStatus) {
         super(wrapped, httpResponseStatus);
+    }
+
+    public FrpcFault asFault() {
+        if(!isFault()) {
+            throw new IllegalStateException("Cannot convert this FRPC result to FRPC fault form since the object wrapped by this instance is not a fault, it is a " + getWrappedType());
+        }
+        return as(FrpcFault.class);
     }
 
     @SuppressWarnings("unchecked")

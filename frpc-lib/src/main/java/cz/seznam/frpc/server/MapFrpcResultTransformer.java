@@ -25,7 +25,7 @@ public class MapFrpcResultTransformer implements FrpcResultTransformer<Map<Strin
      *     </li>
      *     <li>
      *         If the object is not a map, new map is created using {@link FrpcResponseUtils#ok()} and the object is stored in
-     *         this map under the key obtained by calling {@link FrpcRequestProcessingResult#getMethodResponseKey()}.
+     *         this map under the key obtained by calling {@link FrpcRequestProcessingResult#getMethodMetaData()}.
      *     </li>
      * </ul>
      *
@@ -39,7 +39,8 @@ public class MapFrpcResultTransformer implements FrpcResultTransformer<Map<Strin
         Map<String, Object> result;
         // getResult the actual method call result and the resultKey to map the result to
         Object methodResult = frpcRequestProcessingResult.getMethodResult();
-        String methodResponseKey = frpcRequestProcessingResult.getMethodResponseKey();
+        String methodResponseKey = (String) frpcRequestProcessingResult.getMethodMetaData().getAdditionalData()
+                .get("result");
         // if the methodResponseKey is empty, it's the same as null - we treat it as not set
         if(methodResponseKey != null && methodResponseKey.isEmpty()) {
             methodResponseKey = null;

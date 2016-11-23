@@ -1,6 +1,5 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.core.FrpcTypes;
 import cz.seznam.frpc.server.annotations.FrpcIgnore;
 import cz.seznam.frpc.server.annotations.FrpcMethod;
 import org.apache.commons.lang3.StringUtils;
@@ -29,8 +28,8 @@ import java.util.stream.Collectors;
  *         If the method is annotated with {@link FrpcIgnore} then it is ignored.
  *     </li>
  *     <li>
- *         If the method is annotated with {@link FrpcMethod}, then the value of "name" property of the
- *         annotation is used as a name for the method. Otherwise the real name of the method is used.
+ *         If the method is annotated with {@link FrpcMethod}, then the value of "value" property of the
+ *         annotation is used as a value for the method. Otherwise the real value of the method is used.
  *     </li>
  *     <li>
  *         If the method returns anything but a {@code Map}, then it checks that <strong>it is annotated</strong>
@@ -73,17 +72,15 @@ class ReflectiveFrpcHandlerMethodLocator implements FrpcHandlerMethodLocator {
                 // filter out those which are static, non-public or annotated by @FrpcIgnore
                 .filter(m -> Modifier.isPublic(m.getModifiers()) && !Modifier.isStatic(m.getModifiers())
                         && !m.isAnnotationPresent(FrpcIgnore.class))
-                // check params of each method for being compatible with FRPC
-                .map(this::checkMethod)
                 // and map them by their names
                 .collect(Collectors.toMap(m -> {
                     FrpcMethod frpcMethod = m.getAnnotation(FrpcMethod.class);
-                    if(frpcMethod == null || StringUtils.isBlank(frpcMethod.name())) {
+                    if(frpcMethod == null || StringUtils.isBlank(frpcMethod.value())) {
                         return m.getName();
                     }
-                    return frpcMethod.name();
+                    return frpcMethod.value();
                 }, Function.identity(), (x, y) -> {
-                    // if method name occurs more than once, it's an error
+                    // if method value occurs more than once, it's an error
                     throw new IllegalArgumentException("Class " + clazz.getSimpleName()
                             + " contains ambiguous methods named " + x.getName());
                 }));
@@ -94,35 +91,39 @@ class ReflectiveFrpcHandlerMethodLocator implements FrpcHandlerMethodLocator {
         return methodsByName;
     }
 
-    private Method checkMethod(Method method) {
-        // check that method parameter types are compatible with this framework
-
-
-
-        // iterate method params and check that all of them are compatible with FRPC
-        for(Class<?> parameterType : method.getParameterTypes()) {
-            if(!FrpcTypes.isCompatibleType(parameterType)) {
-                throw new UnsupportedParameterTypeException("Method \"" + method.getName() + "\" of class "
-                        + method.getDeclaringClass().getSimpleName() + " declares parameter of type "
-                        + parameterType.getSimpleName() + " which is an unsupported FRPC type.");
-            }
-        }
-        // check result type
-        Class<?> returnType = method.getReturnType();
-        FrpcMethod frpcMethod = method.getAnnotation(FrpcMethod.class);
-        // if it's not a Map, then @FrpcMethod annotation must be present on this method and must have the resultKey
-        // property set
-        if(returnType != Map.class && (frpcMethod == null || StringUtils.isBlank(frpcMethod.resultKey()))) {
-            throw new UnsupportedReturnTypeException("Method \"" + method.getName() + "\" of class "
-                    + method.getDeclaringClass().getSimpleName()
-                    + " is either not annotated by @" + FrpcMethod.class.getSimpleName()
-                    + " or property \"resultKey\" of that annotation is not set."
-                    + " Since the method has a return type " + method.getReturnType().getSimpleName()
-                    + " (which is not a Map), the \"resultKey\" is needed. Either add the annotation and set"
-                    + " the property or make the method return a Map.");
-        }
-
-        return method;
+    Map<String, Method> getMethodsByName() {
+        return methodsByName;
     }
+
+    //    private Method checkMethod(Method method) {
+//        // check that method parameter types are compatible with this framework
+//
+//
+//
+//        // iterate method params and check that all of them are compatible with FRPC
+//        for(Class<?> parameterType : method.getParameterTypes()) {
+//            if(!FrpcTypes.isCompatibleType(parameterType)) {
+//                throw new UnsupportedParameterTypeException("Method \"" + method.getName() + "\" of class "
+//                        + method.getDeclaringClass().getSimpleName() + " declares parameter of type "
+//                        + parameterType.getSimpleName() + " which is an unsupported FRPC type.");
+//            }
+//        }
+//        // check result type
+//        Class<?> returnType = method.getReturnType();
+//        FrpcMethod frpcMethod = method.getAnnotation(FrpcMethod.class);
+//        // if it's not a Map, then @FrpcMethod annotation must be present on this method and must have the resultKey
+//        // property set
+//        if(returnType != Map.class && (frpcMethod == null || StringUtils.isBlank(frpcMethod.resultKey()))) {
+//            throw new UnsupportedReturnTypeException("Method \"" + method.getName() + "\" of class "
+//                    + method.getDeclaringClass().getSimpleName()
+//                    + " is either not annotated by @" + FrpcMethod.class.getSimpleName()
+//                    + " or property \"resultKey\" of that annotation is not set."
+//                    + " Since the method has a return type " + method.getReturnType().getSimpleName()
+//                    + " (which is not a Map), the \"resultKey\" is needed. Either add the annotation and set"
+//                    + " the property or make the method return a Map.");
+//        }
+//
+//        return method;
+//    }
 
 }
