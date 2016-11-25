@@ -3,7 +3,8 @@ package cz.seznam.frpc.server;
 import java.util.Map;
 
 /**
- * Simple DTO class holding an instance of {@link FrpcHandler} and a map of its methods meta data.
+ * Simple DTO class holding an instance of {@link FrpcHandler} and a map of its method names to corresponding meta data.
+ * This class is fully immutable.
  *
  * @author David Moidl david.moidl@firma.seznam.cz
  */

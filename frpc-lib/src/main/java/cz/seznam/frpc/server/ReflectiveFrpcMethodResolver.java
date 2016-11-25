@@ -19,7 +19,7 @@ class ReflectiveFrpcMethodResolver extends DefaultJavaMethodBasedFrpcMethodResol
         this.methodLocator = Objects.requireNonNull(methodLocator);
     }
 
-    public Map<String, FrpcMethodMetaData> resolveFrpcMethods(Class type) {
+    public Map<String, FrpcMethodMetaData> resolveFrpcMethods(Class examined) {
         // get all methods from the locator
         Map<String, Method> methods = methodLocator.getMethodsByName();
         // construct output map
@@ -28,7 +28,7 @@ class ReflectiveFrpcMethodResolver extends DefaultJavaMethodBasedFrpcMethodResol
         // for each method
         for(Map.Entry<String, Method> entry : methods.entrySet()) {
             // resolve additional data
-            Map<String, Object> additionalData = resolveAdditionalData(entry.getValue());
+            Map<String, Object> additionalData = resolveAdditionalMetaData(entry.getValue());
             // create meta data holder
             FrpcMethodMetaData metaData = FrpcMethodMetaData
                     .fromMethodWithAdditionalData(entry.getValue(), additionalData);
