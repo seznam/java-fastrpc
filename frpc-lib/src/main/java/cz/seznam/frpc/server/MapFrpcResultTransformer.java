@@ -19,9 +19,10 @@ public class MapFrpcResultTransformer implements FrpcResultTransformer<Map<Strin
      * <ul>
      *     <li>
      *         If the object is a {@code Map}, this method checks whether this map contains keys
-     *         {@link FrpcResponseUtils#STATUS_KEY} and {@link FrpcResponseUtils#STATUS_MESSAGE_KEY}. If any of them is missing, then
-     *         a mapping is added from that key to its default "OK" value ({@link FrpcResponseUtils#OK_STATUS_CODE} or
-     *         {@link FrpcResponseUtils#DEFAULT_OK_STATUS_MESSAGE} respectively).
+     *         {@link FrpcResponseUtils#STATUS_KEY} and {@link FrpcResponseUtils#STATUS_MESSAGE_KEY}. If any of them is
+     *         missing, then a mapping is added from that key to its default "OK" value
+     *         ({@link FrpcResponseUtils#OK_STATUS_CODE} or {@link FrpcResponseUtils#DEFAULT_OK_STATUS_MESSAGE}
+     *         respectively).
      *     </li>
      *     <li>
      *         If the object is not a map, new map is created using {@link FrpcResponseUtils#ok()} and the object is stored in

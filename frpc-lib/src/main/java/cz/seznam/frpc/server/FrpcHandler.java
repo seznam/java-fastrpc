@@ -9,11 +9,11 @@ package cz.seznam.frpc.server;
 public interface FrpcHandler {
 
     /**
-     * Handles {@code FRPC} method call by either directly running the logic behind the method value or by delegating
+     * Handles {@code FRPC} method call by either directly running the logic behind the method name or by delegating
      * the work elsewhere. Either way, the result is the actual result of the {@code FRPC} method.
      *
-     * @param frpcMethodName value of the {@code FRPC} method to call
-     * @param args array of arguments for the {@code FRPC} method with given value
+     * @param frpcMethodName name of the {@code FRPC} method to call
+     * @param args array of arguments for the {@code FRPC} method with given name
      * @return actual result of the {@code FRPC} method
      * @throws Exception if anything goes wrong during computation
      */

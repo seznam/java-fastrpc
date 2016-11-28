@@ -11,10 +11,10 @@ import java.util.function.Supplier;
  * Handler mapping ties business logic (so called "handlers") to names of {@code FRPC} methods.
  * A {@code FRPC} method name typically looks like this:
  * <pre>
- *     some.handler.value.method
+ *     some.handler.name.method
  * </pre>
  * where the part up to the last dot represents a handler name and the rest represents the name of a method within that
- * handler. That is in the example above, handler name would be {@code some.handler.value} and a method name within that
+ * handler. That is in the example above, handler name would be {@code some.handler.name} and a method name within that
  * handler would be {@code method}.
  * <p>
  * This class allows to map any class or {@link FrpcMethodNamesProvider} - {@link FrpcMethodMetaDataProvider} -
@@ -96,7 +96,7 @@ public class FrpcHandlerMapping {
         Objects.requireNonNull(methodMetaDataProvider);
         Objects.requireNonNull(handler);
         // list all method names
-        Set<String> methodNames = methodNamesProvider.listMethodNames();
+        Set<String> methodNames = methodNamesProvider.listMethodNames(handler);
         // map them to their meta data
         Map<String, FrpcMethodMetaData> methods = new HashMap<>(methodNames.size());
         for (String methodName : methodNames) {
@@ -149,7 +149,7 @@ public class FrpcHandlerMapping {
      *                        {@link ReflectiveFrpcMethodResolver}
      */
     public <T> void addHandler(String name, Class<T> handlerClass, Supplier<T> handlerSupplier,
-                               FrpcMethodResolver methodResolver) {
+                               FrpcMethodResolver<T> methodResolver) {
         createMapping(name, Objects.requireNonNull(handlerClass), Objects.requireNonNull(handlerSupplier),
                 methodResolver);
     }
@@ -189,7 +189,7 @@ public class FrpcHandlerMapping {
      *                       provided by given {@code handlerClass}, may be {@code null} in which case it defaults to
      *                       {@link ReflectiveFrpcMethodResolver}
      */
-    public <T> void addHandler(String name, Class<?> handlerClass, FrpcMethodResolver<T> methodResolver) {
+    public <T> void addHandler(String name, Class<T> handlerClass, FrpcMethodResolver<T> methodResolver) {
         // create mapping
         createMapping(name, handlerClass, () -> {
             try {
@@ -201,10 +201,10 @@ public class FrpcHandlerMapping {
     }
 
     /**
-     * Removes handler of given value from this mapping.
+     * Removes handler of given name from this mapping.
      *
-     * @param name value of the handler to remove
-     * @return {@code true} if handler by that value was present in this mapping and was removed as a result of this
+     * @param name name of the handler to remove
+     * @return {@code true} if handler by that name was present in this mapping and was removed as a result of this
      * operation and {@code false} otherwise
      */
     public boolean removeHandler(String name) {
@@ -218,8 +218,8 @@ public class FrpcHandlerMapping {
      * <pre>
      *     full method name = handler name . method name within handler
      * </pre>
-     * For example a full name of method {@code test} of handler mapped under name {@code "some.handler"} would be
-     * {@code handler.test}.
+     * For example a full name of method {@code test} of handler mapped under name {@code some.handler} would be
+     * {@code some.handler.test}.
      *
      * @return a map mapping full {@code FRPC} method names to their {@code FrpcMethodMetaData}
      */
@@ -243,9 +243,9 @@ public class FrpcHandlerMapping {
 
     @SuppressWarnings("unchecked")
     private void createMapping(String name, Class<?> handlerClass, Supplier<?> supplier,
-                               FrpcMethodResolver frpcMethodResolver) {
-        // create FrpcHandlerMethodLocator for given class
-        ReflectiveFrpcHandlerMethodLocator methodLocator = new ReflectiveFrpcHandlerMethodLocator(handlerClass);
+                               FrpcMethodResolver<?> frpcMethodResolver) {
+        // create FrpcMethodLocator for given class
+        ReflectiveFrpcMethodLocator methodLocator = new ReflectiveFrpcMethodLocator(handlerClass);
         // create default method resolver if needed
         FrpcMethodResolver methodResolver = frpcMethodResolver == null ?
                 new ReflectiveFrpcMethodResolver(methodLocator) : frpcMethodResolver;

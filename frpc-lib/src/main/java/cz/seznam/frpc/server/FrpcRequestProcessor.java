@@ -15,13 +15,10 @@ public interface FrpcRequestProcessor {
      * Processes single {@code FRPC} request completely. That mean it generally takes following steps:
      * <ol>
      *     <li>
-     *         chooses proper method to call based on method value from the request
+     *         chooses proper method to call based on method name from the request
      *     </li>
      *     <li>
      *         calls proper business logic implementing the {@code FRPC} method
-     *     </li>
-     *     <li>
-     *         (optionally) works out under which key to store the result (or not if the result is already a map)
      *     </li>
      *     <li>
      *         returns the result as {@link FrpcRequestProcessingResult}

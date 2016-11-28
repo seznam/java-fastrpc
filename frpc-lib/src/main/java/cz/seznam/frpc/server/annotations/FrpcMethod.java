@@ -6,10 +6,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation used to specify arbitrary {@code FRPC} method value within a handler. Any public non-static method
- * annotated with this annotation will be registered under the value specified as a value of this annotation.
+ * Annotation used to specify arbitrary {@code FRPC} method name within a handler. When using
+ * {@link cz.seznam.frpc.server.ReflectiveFrpcMethodLocator}, then any public non-static method annotated with this
+ * annotation will be registered under the name specified as a value of this annotation.
  * <br />
- * This annotation can be used to disambiguate multiple methods of the same value within one class.
+ * This annotation can be used to disambiguate multiple methods of the same name within one class.
  *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
@@ -18,10 +19,10 @@ import java.lang.annotation.Target;
 public @interface FrpcMethod {
 
     /**
-     * Specifies a value under which this method should be published by the {@code FRPC} server. <br />
-     * Defaults to empty string which indicates that the value of the annotated method should be used.
+     * Specifies a name under which this method should be published by the {@code FRPC} server. <br />
+     * Defaults to empty string which indicates that the name of the annotated method should be used.
      *
-     * @return a value under which this method should be published by the {@code FRPC} server
+     * @return a name under which this method should be published by the {@code FRPC} server
      */
     String value() default "";
 

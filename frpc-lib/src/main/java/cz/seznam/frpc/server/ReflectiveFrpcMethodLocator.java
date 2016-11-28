@@ -15,9 +15,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of {@link FrpcHandlerMethodLocator} which uses reflection to find methods of given class which
+ * Implementation of {@link FrpcMethodLocator} which uses reflection to find methods of given class which
  * represent {@code FRPC} method implementations. <br />
- * Once instantiated, {@code ReflectiveFrpcHandlerMethodLocator} examines given {@code Class} parameter and creates a
+ * Once instantiated, {@code ReflectiveFrpcMethodLocator} examines given {@code Class} parameter and creates a
  * map mapping methods by their {@code FRPC} names to actual {@link Method}s. The process works as follows:
  * <ul>
  *     <li>
@@ -29,19 +29,15 @@ import java.util.stream.Collectors;
  *     </li>
  *     <li>
  *         If the method is annotated with {@link FrpcMethod}, then the value of "value" property of the
- *         annotation is used as a value for the method. Otherwise the real value of the method is used.
- *     </li>
- *     <li>
- *         If the method returns anything but a {@code Map}, then it checks that <strong>it is annotated</strong>
- *         with {@link FrpcMethod} and that the {@code resultKey} of that annotation <strong>is specified</strong>.
+ *         annotation is used as a name for the method. Otherwise the real name of the method is used.
  *     </li>
  * </ul>
  *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
-class ReflectiveFrpcHandlerMethodLocator implements FrpcHandlerMethodLocator {
+public class ReflectiveFrpcMethodLocator implements FrpcMethodLocator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReflectiveFrpcHandlerMethodLocator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReflectiveFrpcMethodLocator.class);
 
     /**
      * Maps {@code FRPC} method names to actual Java methods.
@@ -51,13 +47,21 @@ class ReflectiveFrpcHandlerMethodLocator implements FrpcHandlerMethodLocator {
     /**
      * Creates new instance which will examine given {@code Class} and store its methods under their {@code FRPC} names.
      *
-     * @param c class to examine
+     * @param examined class to examine
      */
-    ReflectiveFrpcHandlerMethodLocator(Class<?> c) {
-        Objects.requireNonNull(c, "Given class must not be null");
-        this.methodsByName = mapMethods(c);
+    public ReflectiveFrpcMethodLocator(Class<?> examined) {
+        Objects.requireNonNull(examined, "Given class must not be null");
+        this.methodsByName = mapMethods(examined);
     }
 
+    /**
+     * Tries to find a {@code Method} corresponding to given name.
+     *
+     * @param frpcMethodName {@code FRPC} method name to locate a method by
+     *
+     * @return method corresponding to given name
+     * @throws NoSuchMethodException if no method could be found by given name
+     */
     @Override
     public Method locateMethodByFrpcName(String frpcMethodName) throws NoSuchMethodException {
         Method method = methodsByName.get(frpcMethodName);
@@ -91,39 +95,13 @@ class ReflectiveFrpcHandlerMethodLocator implements FrpcHandlerMethodLocator {
         return methodsByName;
     }
 
+    /**
+     * Returns mapped methods, for internal use only.
+     *
+     * @return methods mapped to their {@code FRPC} names
+     */
     Map<String, Method> getMethodsByName() {
         return methodsByName;
     }
-
-    //    private Method checkMethod(Method method) {
-//        // check that method parameter types are compatible with this framework
-//
-//
-//
-//        // iterate method params and check that all of them are compatible with FRPC
-//        for(Class<?> parameterType : method.getParameterTypes()) {
-//            if(!FrpcTypes.isCompatibleType(parameterType)) {
-//                throw new UnsupportedParameterTypeException("Method \"" + method.getName() + "\" of class "
-//                        + method.getDeclaringClass().getSimpleName() + " declares parameter of type "
-//                        + parameterType.getSimpleName() + " which is an unsupported FRPC type.");
-//            }
-//        }
-//        // check result type
-//        Class<?> returnType = method.getReturnType();
-//        FrpcMethod frpcMethod = method.getAnnotation(FrpcMethod.class);
-//        // if it's not a Map, then @FrpcMethod annotation must be present on this method and must have the resultKey
-//        // property set
-//        if(returnType != Map.class && (frpcMethod == null || StringUtils.isBlank(frpcMethod.resultKey()))) {
-//            throw new UnsupportedReturnTypeException("Method \"" + method.getName() + "\" of class "
-//                    + method.getDeclaringClass().getSimpleName()
-//                    + " is either not annotated by @" + FrpcMethod.class.getSimpleName()
-//                    + " or property \"resultKey\" of that annotation is not set."
-//                    + " Since the method has a return type " + method.getReturnType().getSimpleName()
-//                    + " (which is not a Map), the \"resultKey\" is needed. Either add the annotation and set"
-//                    + " the property or make the method return a Map.");
-//        }
-//
-//        return method;
-//    }
 
 }

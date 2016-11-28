@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
+ * Implementation of {@link FrpcRequestProcessor} using {@link FrpcHandlerMapping} to delegate {@code FRPC} request to
+ * proper methods of proper handlers.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
@@ -19,6 +22,12 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
 
     private Map<String, FrpcMethodHandlerAndMethods> handlerMapping;
 
+    /**
+     * Creates new instance from given argument.
+     *
+     * @param handlerMapping handler mapping to use when delegating {@code FRPC} request to proper methods of proper
+     *                       handlers
+     */
     public HandlerUsingFrpcRequestProcesor(FrpcHandlerMapping handlerMapping) {
         Objects.requireNonNull(handlerMapping);
         this.handlerMapping = handlerMapping.getMapping();

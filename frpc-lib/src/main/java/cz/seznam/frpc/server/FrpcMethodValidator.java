@@ -4,23 +4,32 @@ import cz.seznam.frpc.core.FrpcTypes;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.*;
+import java.util.regex.Pattern;
 
 
 /**
- * Abstract class providing core method validation logic.
+ * Abstract class providing core method validation logic. There are certain criteria any {@code FRPC} method has to meet
+ * should it be compatible with this framework. The most important criteria are that types of all parameters of a
+ * {@code FRPC} method as well as its return type are supported by this framework and can be converted into objects
+ * which can be read and written by {@code FRPC} un/marshaller. <br />
+ * Custom implementations of this class may impose additional constraints via
+ * {@link #doAdditionalValidation(String, FrpcMethodMetaData)} method.
  *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public abstract class FrpcMethodValidator {
 
     private class ParameterCheckException extends RuntimeException {
-        public ParameterCheckException(String message) {
+        private ParameterCheckException(String message) {
             super(message);
         }
     }
 
+    private static final Pattern ILLEGAL_CHARS_PATTERN = Pattern.compile("[.\\s]");
+
     /**
-     * Does additional validation of the method represented by given name and meta data.
+     * Does additional validation of the method represented by given name and meta data. If this method is called, then
+     * the {@code FRPC} method represented by method arguments have already successfully passed the mandatory validation.
      *
      * @param methodName name of the method to be validated
      * @param methodMetaData meta data of the method to be validated
@@ -47,8 +56,10 @@ public abstract class FrpcMethodValidator {
         if (StringUtils.isBlank(methodName)) {
             return new FrpcMethodValidationResult(false, "Method name cannot be blank");
         }
-        if (methodName.indexOf('.') != -1) {
-            return new FrpcMethodValidationResult(false, "Method names within handler cannot contain dots");
+        if (ILLEGAL_CHARS_PATTERN.matcher(methodName).find()) {
+            return new FrpcMethodValidationResult(false,
+                    "Method names within handler must not contain anything matched by this regex: " + ILLEGAL_CHARS_PATTERN
+                            .pattern());
         }
 
         // validate method parameter types
