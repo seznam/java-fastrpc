@@ -13,14 +13,46 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
 
+/**
+ * Core component of the framework. {@code FrpcMarshaller} transforms plain Java objects into binary data and writes
+ * them into a stream.
+ *
+ * @author David Moidl david.moidl@firma.seznam.cz
+ */
 public class FrpcMarshaller {
 
+    /**
+     * The stream to write serialized objects into.
+     */
     protected OutputStream outputStream;
 
+    /**
+     * Creates new marshaller writing data into given stream.
+     *
+     * @param outputStream stream to write serialized objects into
+     */
     public FrpcMarshaller(OutputStream outputStream) {
         this.outputStream = Objects.requireNonNull(outputStream);
     }
 
+    /**
+     * Writes {@link FrpcRequest} into the stream. As per protocol specification, this process works as follows:
+     * <ol>
+     *     <li>
+     *         Magic number is written.
+     *     </li>
+     *     <li>
+     *         Method name (a string value) is written.
+     *     </li>
+     *     <li>
+     *         Request parameters are written one by one in order of iteration of the list holding them.
+     *     </li>
+     * </ol>
+     *
+     * @param request {@code FRPC} request to be written into the stream
+     *
+     * @throws FrpcDataException if anything goes wrong during serialization
+     */
     public void writeRequest(FrpcRequest request) throws FrpcDataException {
         Objects.requireNonNull(request, "Request must not be null");
         try {
@@ -37,7 +69,33 @@ public class FrpcMarshaller {
         }
     }
 
-    public void writeResponse(Object response) {
+    /**
+     * Writes an object representing the  into the stream. As per protocol specification, this process works as follows:
+     * <ol>
+     *     <li>
+     *         Magic number is written.
+     *     </li>
+     *     <li>
+     *         Method response type is written. If the response object is a {@link FrpcFault}, then response type
+     *         indicating a fault is written. Otherwise a response type indicating single-object {@code FRPC} response
+     *         is written.
+     *     </li>
+     *     <li>
+     *         Actual data is written. In case of {@code FrpcFault}, this means status message and status code (in this
+     *         order), in other cases it means the response object.
+     *     </li>
+     * </ol>
+     *
+     * @param response response object to be written into the stream
+     * @throws FrpcDataException if anything goes wrong during serialization
+     */
+    public void writeResponse(Object response) throws FrpcDataException {
+        // if the object is a fault, write fault
+        if(response instanceof FrpcFault) {
+            writeFault(((FrpcFault) response));
+            return;
+        }
+        // write any other response
         try {
             // initialize non-data type
             writeMagic();
@@ -50,7 +108,7 @@ public class FrpcMarshaller {
         }
     }
 
-    public void writeFault(FrpcFault fault) throws FrpcDataException {
+    private void writeFault(FrpcFault fault) throws FrpcDataException {
         Objects.requireNonNull(fault, "Fault must not be null");
         try {
             // initialize non-data type
@@ -302,7 +360,7 @@ public class FrpcMarshaller {
             for (Map.Entry<?, ?> entry : struct.entrySet()) {
                 // check that the key is a string
                 Object key = entry.getKey();
-                if(!String.class.isInstance(key)) {
+                if(key != null && key.getClass() != String.class) {
                     throw new FrpcDataException(
                             "Cannot serialize value " + key + " as map key, only String is valid type for map keys");
                 }

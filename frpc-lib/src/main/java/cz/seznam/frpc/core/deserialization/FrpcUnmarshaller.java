@@ -12,19 +12,47 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
+ * Core component of the framework. {@code FrpcUnmarshaller} reads the binary data and constructs Java objects out of
+ * them.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class FrpcUnmarshaller {
 
     protected InputStream input;
 
+    /**
+     * Marker object returned if the end of underlying stream has been reached.
+     */
     private static final Object NO_MORE_OBJECTS = new Object();
 
+    /**
+     * Creates new unmarshaller using given stream as source of data.
+     *
+     * @param inputStream stream to provide data to deserialize
+     */
     public FrpcUnmarshaller(InputStream inputStream) {
         input = Objects.requireNonNull(inputStream, "Input stream must not be null");
     }
 
-    public FrpcRequest readRequest() {
+    /**
+     * Reads {@code FRPC} request. As per protocol specification, this process works as follows:
+     * <ol>
+     *     <li>
+     *         Magic number is read.
+     *     </li>
+     *     <li>
+     *         Method name (a string value) is read.
+     *     </li>
+     *     <li>
+     *         Arbitrary number of parameters are read one by one until the stream has no more data.
+     *     </li>
+     * </ol>
+     *
+     * @return instance of {@code FrpcRequest} deserialized from the stream
+     * @throws FrpcDataException if anything goes wrong during deserialization
+     */
+    public FrpcRequest readRequest() throws FrpcDataException {
         // read magic number
         readMagic();
         // read method value
@@ -43,7 +71,26 @@ public class FrpcUnmarshaller {
         return new FrpcRequest(methodName, parameters);
     }
 
-    public Object readResponse() {
+    /**
+     * Reads {@code FRPC} request. As per protocol specification, this process works as follows:
+     * <ol>
+     *     <li>
+     *         Magic number is read.
+     *     </li>
+     *     <li>
+     *         Method response type is read.
+     *     </li>
+     *     <li>
+     *         If the method response type indicates ordinary response, single object is read. If, on the other hand,
+     *         the method response type indicates a fault, then {@link FrpcFault} is constructed by reading status code
+     *         and status message (in this order).
+     *     </li>
+     * </ol>
+     *
+     * @return instance of {@code FrpcRequest} deserialized from the stream
+     * @throws FrpcDataException if anything goes wrong during deserialization
+     */
+    public Object readResponse() throws FrpcDataException {
         // read magic number
         readMagic();
         // make sure that we are reading method response or fault

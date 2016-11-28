@@ -1,6 +1,6 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.core.FrpcTypes;
+import cz.seznam.frpc.core.FrpcTypesConverter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.*;
@@ -89,7 +89,7 @@ public abstract class FrpcMethodValidator {
     private void validateParameterType(Type type) {
         if (type instanceof Class) {
             // check that it is compatible raw type
-            if (!FrpcTypes.isSupportedRawType((Class) type)) {
+            if (!FrpcTypesConverter.isSupportedRawType((Class) type)) {
                 throw new ParameterCheckException("Class " + type.getTypeName() + " is not supported parameter type");
             }
         } else if (type instanceof ParameterizedType) {
@@ -100,7 +100,7 @@ public abstract class FrpcMethodValidator {
             // get actual type arguments
             Type[] typeArguments = parameterizedType.getActualTypeArguments();
             // if it is, it must be either map or collection
-            if (FrpcTypes.isSupportedMapType(rawType)) {
+            if (FrpcTypesConverter.isSupportedMapType(rawType)) {
                 // maps have to have Strings (or Objects) as their keys
                 if (typeArguments[0] != String.class && typeArguments[0] != Object.class) {
                     throw new ParameterCheckException(
@@ -108,7 +108,7 @@ public abstract class FrpcMethodValidator {
                 }
                 // validate the other type argument
                 validateParameterType(typeArguments[1]);
-            } else if (FrpcTypes.isSupportedCollectionType(rawType)) {
+            } else if (FrpcTypesConverter.isSupportedCollectionType(rawType)) {
                 // check the only type argument
                 validateParameterType(typeArguments[0]);
             }

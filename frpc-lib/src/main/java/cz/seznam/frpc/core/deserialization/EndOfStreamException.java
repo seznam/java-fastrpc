@@ -1,6 +1,9 @@
 package cz.seznam.frpc.core.deserialization;
 
 /**
+ * Exception thrown by {@link FrpcUnmarshaller} while reading data from the stream to indicate there is no more data
+ * in the stream.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class EndOfStreamException extends RuntimeException {

@@ -1,14 +1,14 @@
 package cz.seznam.frpc;
 
 import cz.seznam.frpc.client.FrpcClient;
+import cz.seznam.frpc.core.FrpcType;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Collectors;
 
-public class FrpcDemoClient
-{
-    public static void main( String[] args ) {
+public class FrpcDemoClient {
+    public static void main(String[] args) {
         // Creation of FastRPC client
         FrpcClient client = new FrpcClient("http://localhost:9898/RPC2");
 
@@ -23,13 +23,13 @@ public class FrpcDemoClient
         System.out.println("Result of numberOperations.multiply (multiple nesting): " + multiplication);
 
         // nothing special here, just a call...
-        Integer index = client.call("arrayOperations.indexOf", 1, new int[] {5, 6, 7, 2, 1, 6}).as(Integer.class);
+        Integer index = client.call("arrayOperations.indexOf", 1, new int[]{5, 6, 7, 2, 1, 6}).as(Integer.class);
         System.out.println("Result of arrayOperations.indexOf: " + index);
 
         // array containing other complex types work too
-        List<Object[]> list = client.call("arrayOperations.getFirst",
+        List<Integer[]> list = client.call("arrayOperations.getFirst",
                 (Object) new List[]{Arrays.asList(Arrays.asList(1, 2), Arrays.asList(3, 4)), Arrays.asList(
-                        Arrays.asList(5, 6), Arrays.asList(7, 8))}).asArrayOf(Object[].class).asList();
+                        Arrays.asList(5, 6), Arrays.asList(7, 8))}).asArrayOf(Integer[].class).asList();
         System.out.println("Result of arrayOperations.getFirst: " + list.stream().map(Arrays::toString).collect(
                 Collectors.joining(",", "[", "]")));
 
@@ -73,8 +73,8 @@ public class FrpcDemoClient
         System.out.println("Result of binaryOperations.stringToBytes: " + Arrays.toString(binaryResult2));
 
         // nulls are just nulls
-        Void nullResult = client.call("binaryOperations./dev/null", "String to be obliterated")
-                .as(Void.class);
+        Object nullResult = client.call("binaryOperations./dev/null", "String to be obliterated")
+                .asObject();
         System.out.println("Result of binaryOperations./dev/null: " + nullResult);
 
         // complex types work as well
@@ -99,6 +99,12 @@ public class FrpcDemoClient
         List<String> flattenResult = client.call("otherOperations.flatten", (Object) array)
                 .asArrayOf(String.class).asList();
         System.out.println("Result of otherOperations.flatten: " + flattenResult);
+
+        // complex objects can be mapped in a type safe way
+        Map<String, List<Map<String, List<String>>>> complexResult = client.call("otherOperations.getComplexValue")
+                .as(new FrpcType<Map<String, List<Map<String, List<String>>>>>() {
+                });
+        System.out.println("Result of otherOperations.getComplexValue: " + complexResult);
 
     }
 }

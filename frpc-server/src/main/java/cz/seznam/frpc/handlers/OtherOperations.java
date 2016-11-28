@@ -11,11 +11,11 @@ import java.util.stream.Collectors;
  */
 public class OtherOperations {
 
-    public Map<String, Object> getComplexValue() {
-        Map<String, Object> map = new HashMap<>();
-        List<Object> list = new ArrayList<>();
-        Map<String, Object> nestedMap = new HashMap<>();
-        List<Object> values = Arrays.asList("some", "values", "in", "a", "list");
+    public Map<String, List<Map<String, List<String>>>> getComplexValue() {
+        Map<String, List<Map<String, List<String>>>> map = new HashMap<>();
+        List<Map<String, List<String>>> list = new ArrayList<>();
+        Map<String, List<String>> nestedMap = new HashMap<>();
+        List<String> values = Arrays.asList("some", "values", "in", "a", "list");
 
         nestedMap.put("values", values);
         list.add(nestedMap);

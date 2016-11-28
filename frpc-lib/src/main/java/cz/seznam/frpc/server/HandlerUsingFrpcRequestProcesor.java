@@ -1,5 +1,6 @@
 package cz.seznam.frpc.server;
 
+import cz.seznam.frpc.core.FrpcTypesConverter;
 import cz.seznam.frpc.core.transport.FrpcRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,7 +86,7 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
         Type[] parameterTypes = methodMetaData.getParameterTypes();
 
         // try to unmarshall arguments according to method parameter types
-        Object[] arguments = FrpcServerUtils
+        Object[] arguments = FrpcTypesConverter
                 .checkAndConvertMethodParameters(requestMethodName, parameterTypes, parameters);
 
         // call the method handler
