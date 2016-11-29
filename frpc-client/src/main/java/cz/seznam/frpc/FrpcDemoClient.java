@@ -9,8 +9,11 @@ import java.util.stream.Collectors;
 
 public class FrpcDemoClient {
     public static void main(String[] args) {
-        // Creation of FastRPC client
-        FrpcClient client = new FrpcClient("http://localhost:9898/RPC2");
+        // create new FRPC client using builder-style API
+        FrpcClient client = FrpcClient.builder()
+                .url("http://localhost:9898/RPC2")
+                .usingDefaultHttpClient()
+                .build();
 
         // this is what a simple call looks like
         Long sum = client.call("numberOperations.add", 3, 2).as(Long.class);
@@ -95,6 +98,7 @@ public class FrpcDemoClient {
         m.put("second", Arrays.asList(s, s2));
 
         Object[] array = new Object[]{m, m};
+
 
         List<String> flattenResult = client.call("otherOperations.flatten", (Object) array)
                 .asArrayOf(String.class).asList();

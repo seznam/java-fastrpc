@@ -1,5 +1,7 @@
 package cz.seznam.frpc.client;
 
+import cz.seznam.frpc.core.FrpcType;
+
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -48,6 +50,10 @@ public class StructFrpcCallResult extends AbstractFrpcCallResult<Map<String, Obj
     }
 
     public <A> ArrayFrpcCallResult<A> getArray(String key, Class<A> arrayType) {
+        return get(key).asArrayOf(arrayType);
+    }
+
+    public <A> ArrayFrpcCallResult<A> getArray(String key, FrpcType<A> arrayType) {
         return get(key).asArrayOf(arrayType);
     }
 

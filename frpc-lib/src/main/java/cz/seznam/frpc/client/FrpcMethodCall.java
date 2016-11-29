@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -30,9 +31,10 @@ public class FrpcMethodCall {
     private static final Logger LOGGER = LoggerFactory.getLogger(FrpcMethodCall.class);
 
     private HttpClient client;
-    private HttpPost request;
+    private URI uri;
     private Protocol protocol;
     private List<Object> implicitParameters;
+    private boolean prependImplicitParams;
     private Map<String, String> headers;
     private int maxAttemptCount;
     private Long connectTimeout;
@@ -44,13 +46,14 @@ public class FrpcMethodCall {
     private String method;
     private List<Object> parameters;
 
-    FrpcMethodCall(HttpClient client, HttpPost request, Protocol protocol, List<Object> implicitParameters,
-                   Map<String, String> headers, int maxAttemptCount, long retryDelay, TimeUnit retryDelayTimeUnit,
-                   String method, List<Object> parameters) {
+    FrpcMethodCall(HttpClient client, URI uri, Protocol protocol, List<Object> implicitParameters,
+                   boolean prependImplicitParams, Map<String, String> headers, int maxAttemptCount, long retryDelay,
+                   TimeUnit retryDelayTimeUnit, String method, List<Object> parameters) {
         this.client = client;
-        this.request = request;
+        this.uri = uri;
         this.protocol = protocol;
         this.implicitParameters = implicitParameters == null ? Collections.emptyList() : implicitParameters;
+        this.prependImplicitParams = prependImplicitParams;
         this.headers = headers == null ? Collections.emptyMap() : headers;
         this.maxAttemptCount = maxAttemptCount;
         this.retryDelay = retryDelay;
@@ -66,7 +69,7 @@ public class FrpcMethodCall {
     }
 
     public FrpcMethodCall withAddedImplicitParameters(Object... implicitParameters) {
-        if(ArrayUtils.isNotEmpty(implicitParameters)) {
+        if (ArrayUtils.isNotEmpty(implicitParameters)) {
             Arrays.stream(implicitParameters).forEach(this.implicitParameters::add);
         }
         return this;
@@ -77,17 +80,17 @@ public class FrpcMethodCall {
         return this;
     }
 
-    public FrpcMethodCall withAddedHeader(String name, String value) {
+    public FrpcMethodCall withNewHeader(String name, String value) {
         this.headers.put(name, value);
         return this;
     }
 
-    public FrpcMethodCall withAddedHeaders(Map<String, String> headers) {
+    public FrpcMethodCall withNewHeaders(Map<String, String> headers) {
         this.headers.putAll(Objects.requireNonNull(headers));
         return this;
     }
 
-    public FrpcMethodCall withConnectTimeout(long newTimeout, TimeUnit timeUnit)  {
+    public FrpcMethodCall withConnectTimeout(long newTimeout, TimeUnit timeUnit) {
         this.connectTimeout = newTimeout;
         this.connectTimeoutTimeUnit = Objects.requireNonNull(timeUnit);
         return this;
@@ -99,12 +102,12 @@ public class FrpcMethodCall {
         return this;
     }
 
-    public FrpcMethodCall withAttemptCount(int newAttemptCount)  {
+    public FrpcMethodCall withAttemptCount(int newAttemptCount) {
         this.maxAttemptCount = newAttemptCount;
         return this;
     }
 
-    public FrpcMethodCall withRetryDelay(int newRetryDelay, TimeUnit timeUnit)  {
+    public FrpcMethodCall withRetryDelay(int newRetryDelay, TimeUnit timeUnit) {
         this.retryDelay = newRetryDelay;
         this.retryDelayTimeUnit = Objects.requireNonNull(timeUnit);
         return this;
@@ -124,13 +127,14 @@ public class FrpcMethodCall {
                 // get FrpcRequestWriter for current protocol
                 FrpcRequestWriter requestWriter = FrpcRequestWriter.forProtocol(protocol);
                 // create FrpcRequest
-                FrpcRequest frpcRequest = new FrpcRequest(method, implicitParameters, parameters);
+                FrpcRequest frpcRequest = new FrpcRequest(method, implicitParameters, prependImplicitParams,
+                        parameters);
                 // write it
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 requestWriter.write(frpcRequest, baos);
 
                 // prepare the request
-                prepareRequest();
+                HttpPost request = prepareRequest();
                 // set body
                 request.setEntity(new ByteArrayEntity(baos.toByteArray()));
                 // send it
@@ -152,14 +156,17 @@ public class FrpcMethodCall {
                 // done, break the cycle
                 break;
             } catch (IOException e) {
-                if(attempts == maxAttemptCount) {
-                    throw new FrpcCallException("An error occurred repeatedly (" + maxAttemptCount + " times) while trying to call FRPC method " + method, e);
+                if (attempts == maxAttemptCount) {
+                    throw new FrpcCallException(
+                            "An error occurred repeatedly (" + maxAttemptCount + " times) while trying to call FRPC method " + method,
+                            e);
                 }
-                if(retryDelay > 0) {
+                if (retryDelay > 0) {
                     try {
                         Thread.sleep(retryDelayTimeUnit.toMillis(retryDelay));
                     } catch (InterruptedException e1) {
-                        LOGGER.warn("An interrupted exception occurred while waiting for {} {} before another try.", retryDelay, retryDelayTimeUnit.name());
+                        LOGGER.warn("An interrupted exception occurred while waiting for {} {} before another try.",
+                                retryDelay, retryDelayTimeUnit.name());
                     }
                 }
             }
@@ -168,14 +175,15 @@ public class FrpcMethodCall {
         return output;
     }
 
-    private void prepareRequest() {
+    private HttpPost prepareRequest() {
+        HttpPost request = new HttpPost(uri);
         // set timeouts
-        if(connectTimeout != null || socketTimeout != null) {
+        if (connectTimeout != null || socketTimeout != null) {
             RequestConfig.Builder configBuilder = RequestConfig.custom();
-            if(connectTimeout != null) {
+            if (connectTimeout != null) {
                 configBuilder.setConnectTimeout((int) connectTimeoutTimeUnit.toMillis(connectTimeout));
             }
-            if(socketTimeout != null) {
+            if (socketTimeout != null) {
                 configBuilder.setSocketTimeout((int) socketTimeoutTimeUnit.toMillis(socketTimeout));
             }
             request.setConfig(configBuilder.build());
@@ -184,6 +192,8 @@ public class FrpcMethodCall {
         request.addHeader(HttpHeaders.CONTENT_TYPE, protocol.getContentType());
         // set headers
         headers.forEach(request::setHeader);
+        // return the request
+        return request;
     }
 
 }

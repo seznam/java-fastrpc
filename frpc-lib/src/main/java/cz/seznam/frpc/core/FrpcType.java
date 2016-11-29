@@ -2,6 +2,7 @@ package cz.seznam.frpc.core;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Map;
 
 /**
  * {@code FrpcType} serves as type reference for type-safe deserialization of values.
@@ -10,6 +11,15 @@ import java.lang.reflect.Type;
  */
 public abstract class FrpcType<T> {
 
+    /**
+     * {@code FRPC} "struct" type which maps to {@code Map<String, Object>} in Java.
+     */
+    public static final FrpcType<Map<String, Object>> STRUCT = new FrpcType<Map<String, Object>>() {
+    };
+
+    /**
+     * The actual type argument of this instance.
+     */
     private final Type type;
 
     protected FrpcType() {
@@ -23,9 +33,9 @@ public abstract class FrpcType<T> {
     }
 
     /**
-     * Returns generic type of this {@code FrpcType} instance as {@link Type}.
+     * Returns the actual type argument of this {@code FrpcType} instance as {@link Type}.
      *
-     * @return generic type of this {@code FrpcType} instance as {@link Type}.
+     * @return the actual type argument of this {@code FrpcType} instance as {@link Type}
      */
     public Type getGenericType() {
         return type;

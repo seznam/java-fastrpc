@@ -1,5 +1,8 @@
 package cz.seznam.frpc.client;
 
+import cz.seznam.frpc.core.FrpcType;
+
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -17,11 +20,31 @@ public class ArrayFrpcCallResult<T> extends AbstractFrpcCallResult<T[]> {
         return false;
     }
 
-    public T get(int index) {
-        if(index < 0 || index > wrapped.length) {
-            throw new ArrayIndexOutOfBoundsException(index);
+    public int getLength() {
+        if(isNull()) {
+            throw new NullPointerException("Wrapped array object is null");
         }
-        return wrapped[index];
+        return wrapped.length;
+    }
+
+    public FrpcCallResult get(int index) {
+        return new FrpcCallResult(wrapped[index], httpResponseStatus);
+    }
+
+    public StructFrpcCallResult getStruct(int index) {
+        return get(index).asStruct();
+    }
+
+    public <U> ArrayFrpcCallResult<U> getArrayOf(int index, Class<U> arrayType) {
+        return doGetArrayOf(index, arrayType);
+    }
+
+    public <U> ArrayFrpcCallResult<U> getArrayOf(int index, FrpcType<U> arrayType) {
+        return doGetArrayOf(index, arrayType.getGenericType());
+    }
+
+    private <U> ArrayFrpcCallResult<U> doGetArrayOf(int index, Type type) {
+        return get(index).asArrayOf(type);
     }
 
     public T[] asArray() {
@@ -41,7 +64,7 @@ public class ArrayFrpcCallResult<T> extends AbstractFrpcCallResult<T[]> {
     }
 
     @SuppressWarnings("unchecked")
-    protected <U extends Collection<T>> U copyToCollection(U collection) {
+    private <U extends Collection<T>> U copyToCollection(U collection) {
         collection.addAll(Arrays.asList(wrapped));
         return collection;
     }

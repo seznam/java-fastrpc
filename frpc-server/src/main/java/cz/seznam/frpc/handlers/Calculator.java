@@ -14,6 +14,9 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Calculator {
 
+    /**
+     * Used to demonstrate that handlers can be stateful.
+     */
     private AtomicLong addCallCount = new AtomicLong(0);
 
     @FrpcMethod("add")

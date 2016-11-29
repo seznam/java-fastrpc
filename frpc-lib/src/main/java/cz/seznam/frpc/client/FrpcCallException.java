@@ -1,6 +1,8 @@
 package cz.seznam.frpc.client;
 
 /**
+ * Runtime exception thrown to indicate general problem with {@code FRPC} method call.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class FrpcCallException extends RuntimeException {
