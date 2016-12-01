@@ -506,11 +506,12 @@ public class FrpcClient {
     }
 
     /**
-     * Prepares call to method of given name with given parameters.
+     * Prepares call to method of given name with given parameters and returns it without executing. This can be useful
+     * for one-time overrides of properties set to this {@code FrpcClient}.
      *
      * @param method name of the {@code FRPC} method to call
      * @param params {@code FRPC} method params
-     * @return instance of {@link FrpcMethodCall}
+     * @return instance of {@link FrpcMethodCall} representing the method call which has not yet been executed
      */
     public FrpcMethodCall prepareCall(String method, Object... params) {
         // check arguments
@@ -521,7 +522,15 @@ public class FrpcClient {
                 maxAttemptCount, retryDelay, retryDelayTimeUnit, method, paramsAsList);
     }
 
-    public FrpcCallResult call(String method, Object... params) {
+    /**
+     * Prepares call to method of given name with given parameters and executes it right away. The result of remote
+     * method is then returned.
+     *
+     * @param method name of the {@code FRPC} method to call
+     * @param params {@code FRPC} method params
+     * @return result of remote method invocation wrapped in {@code FrpcCallResult}
+     */
+    public FrpcCallResult<Object> call(String method, Object... params) {
         return prepareCall(method, params).getResult();
     }
 

@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.TimeZone;
 
 /**
+ * Collection of utility methods providing {@code XML-RPC} capabilities to the {@code FRPC} framework.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class XmlRpcUtils {
@@ -54,24 +56,45 @@ public class XmlRpcUtils {
 
     private static final XmlRpcConfigImpl XML_RPC_CONFIG = new XmlRpcConfigImpl();
 
+    /**
+     * Returns default {@link XmlRpcRequestConfig}.
+     *
+     * @return default {@link XmlRpcRequestConfig}
+     */
     public static XmlRpcRequestConfig defaultRequestConfig() {
         return XML_RPC_CONFIG;
     }
 
+    /**
+     * Returns default {@link XmlRpcStreamConfig}.
+     *
+     * @return default {@link XmlRpcStreamConfig}
+     */
     public static XmlRpcStreamConfig defaultStreamConfig() {
         return XML_RPC_CONFIG;
     }
 
+    /**
+     * Returns default {@link XmlRpcStreamRequestConfig}.
+     *
+     * @return default {@link XmlRpcStreamRequestConfig}
+     */
     public static XmlRpcStreamRequestConfig defaultStreamRequestConfig() {
         return XML_RPC_CONFIG;
     }
 
+    /**
+     * Creates new {@link XmlRpcWriter} for given output stream.
+     *
+     * @param outputStream output stream to create XML-RPC witer for
+     * @return new {@link XmlRpcWriter} for given output stream.
+     */
     public static XmlRpcWriter newXmlRpcWriter(OutputStream outputStream) {
-        return new XmlRpcWriter(defaultStreamConfig(), newXmlWriter(outputStream),
+        return new XmlRpcWriter(defaultStreamConfig(), xmlWriterForOutputStream(outputStream),
                 new TypeFactoryImpl(null));
     }
 
-    public static XMLWriter newXmlWriter(OutputStream outputStream) {
+    private static XMLWriter xmlWriterForOutputStream(OutputStream outputStream) {
         // create XMLWriter
         XMLWriter xmlWriter = new XMLWriterImpl();
         // set encoding
@@ -87,6 +110,5 @@ public class XmlRpcUtils {
         // return the handler
         return xmlWriter;
     }
-
 
 }

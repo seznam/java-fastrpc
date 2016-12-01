@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.util.List;
 
 /**
+ * Specialization of {@link FrpcRequestWriter} capable of writing {@code FrpcRequest}s into {@code XML-RPC} format.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class XmlFrpcRequestWriter implements FrpcRequestWriter {

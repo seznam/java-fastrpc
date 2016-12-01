@@ -1,5 +1,6 @@
 package cz.seznam.frpc.core;
 
+import cz.seznam.frpc.core.transport.FrpcFault;
 import org.apache.commons.lang3.ClassUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ public class FrpcTypesConverter {
     static {
         Set<Class<?>> compatibleClasses = new HashSet<>(
                 Arrays.asList(String.class, Boolean.class, Calendar.class, Date.class, LocalDateTime.class,
-                        ZonedDateTime.class, Object.class));
+                        ZonedDateTime.class, Object.class, FrpcFault.class));
         OTHER_COMPATIBLE_TYPES = Collections.unmodifiableSet(compatibleClasses);
 
         Set<Class<?>> primitiveTypes = new HashSet<>(
@@ -158,9 +159,9 @@ public class FrpcTypesConverter {
         return arguments;
     }
 
-    public static Object convertToCompatibleInstance(Object object, Type type) {
+    public static Object convertToCompatibleInstanceOrThrowException(Object object, Type type) {
         // try to convert the argument into something compatible with current parameter type
-        ConversionResult conversionResult = safeConvertToCompatibleInstance(object, type);
+        ConversionResult conversionResult = convertToCompatibleInstance(object, type);
         // if we cannot convert the parameter into a value compatible with required type, throw an exception
         if (!conversionResult.isSuccess()) {
             throw new IllegalArgumentException(
@@ -171,7 +172,7 @@ public class FrpcTypesConverter {
         return conversionResult.getErrorMessage();
     }
 
-    public static ConversionResult safeConvertToCompatibleInstance(Object object, Type type) {
+    public static ConversionResult convertToCompatibleInstance(Object object, Type type) {
         // check the method parameter type implementation
         if (type instanceof Class) {
             // it's a simple class, convert it to object right away
@@ -219,7 +220,7 @@ public class FrpcTypesConverter {
 
     private static Object convertParameter(Type[] methodParameterTypes, int i, Object parameter) {
         // try to convert the argument into something compatible with current parameter type
-        ConversionResult conversionResult = safeConvertToCompatibleInstance(parameter, methodParameterTypes[i]);
+        ConversionResult conversionResult = convertToCompatibleInstance(parameter, methodParameterTypes[i]);
         // if we cannot convert the parameter into a value compatible with required type, throw an exception
         if (!conversionResult.isSuccess()) {
             throw new IllegalArgumentException(
@@ -250,11 +251,11 @@ public class FrpcTypesConverter {
         // iterate all entries in the original map
         for (Map.Entry<?, ?> e : parameterAsMap.entrySet()) {
             // convert key and value
-            ConversionResult keyConversionResult = safeConvertToCompatibleInstance(e.getKey(), keysType);
+            ConversionResult keyConversionResult = convertToCompatibleInstance(e.getKey(), keysType);
             if (!keyConversionResult.isSuccess()) {
                 return keyConversionResult;
             }
-            ConversionResult valueConversionResult = safeConvertToCompatibleInstance(e.getValue(), valuesType);
+            ConversionResult valueConversionResult = convertToCompatibleInstance(e.getValue(), valuesType);
             if (!valueConversionResult.isSuccess()) {
                 return valueConversionResult;
             }
@@ -265,7 +266,7 @@ public class FrpcTypesConverter {
         return success(map);
     }
 
-    public static ConversionResult convertToArray(Object parameter, Type componentType) {
+    private static ConversionResult convertToArray(Object parameter, Type componentType) {
         // if the parameter is null, return it right away
         if (parameter == null) {
             return success(null);
@@ -298,7 +299,7 @@ public class FrpcTypesConverter {
         // iterate all elements of the original array
         for (int i = 0; i < length; i++) {
             // try to convert each of them
-            ConversionResult converted = safeConvertToCompatibleInstance(parameterAsArray[i], componentType);
+            ConversionResult converted = convertToCompatibleInstance(parameterAsArray[i], componentType);
             // if the conversion failed, return an error
             if (!converted.isSuccess()) {
                 return converted;
@@ -333,7 +334,7 @@ public class FrpcTypesConverter {
         // iterate all elements of the original array
         for (int i = 0; i < length; i++) {
             // try to convert each of them
-            ConversionResult converted = safeConvertToCompatibleInstance(parameterAsArray[i], valuesType);
+            ConversionResult converted = convertToCompatibleInstance(parameterAsArray[i], valuesType);
             // if the conversion failed, return an error
             if (!converted.isSuccess()) {
                 return converted;

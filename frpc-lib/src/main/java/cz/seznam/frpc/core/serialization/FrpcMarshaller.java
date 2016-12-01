@@ -1,7 +1,7 @@
 package cz.seznam.frpc.core.serialization;
 
 import cz.seznam.frpc.core.FrpcConstants;
-import cz.seznam.frpc.core.FrpcDataException;
+import cz.seznam.frpc.core.FrpcDataProcessingException;
 import cz.seznam.frpc.core.transport.FrpcFault;
 import cz.seznam.frpc.core.transport.FrpcRequest;
 
@@ -51,9 +51,9 @@ public class FrpcMarshaller {
      *
      * @param request {@code FRPC} request to be written into the stream
      *
-     * @throws FrpcDataException if anything goes wrong during serialization
+     * @throws FrpcDataProcessingException if anything goes wrong during serialization
      */
-    public void writeRequest(FrpcRequest request) throws FrpcDataException {
+    public void writeRequest(FrpcRequest request) throws FrpcDataProcessingException {
         Objects.requireNonNull(request, "Request must not be null");
         try {
             // initialize non-data type
@@ -65,7 +65,7 @@ public class FrpcMarshaller {
                 writeObject(param);
             }
         } catch (IOException e) {
-            throw new FrpcDataException("Error while writing FRPC request into the stream", e);
+            throw new FrpcDataProcessingException("Error while writing FRPC request into the stream", e);
         }
     }
 
@@ -87,9 +87,9 @@ public class FrpcMarshaller {
      * </ol>
      *
      * @param response response object to be written into the stream
-     * @throws FrpcDataException if anything goes wrong during serialization
+     * @throws FrpcDataProcessingException if anything goes wrong during serialization
      */
-    public void writeResponse(Object response) throws FrpcDataException {
+    public void writeResponse(Object response) throws FrpcDataProcessingException {
         // if the object is a fault, write fault
         if(response instanceof FrpcFault) {
             writeFault(((FrpcFault) response));
@@ -104,11 +104,11 @@ public class FrpcMarshaller {
             // write the object
             writeObject(response);
         } catch (IOException e) {
-            throw new FrpcDataException("Error while writing FRPC response into the stream", e);
+            throw new FrpcDataProcessingException("Error while writing FRPC response into the stream", e);
         }
     }
 
-    private void writeFault(FrpcFault fault) throws FrpcDataException {
+    private void writeFault(FrpcFault fault) throws FrpcDataProcessingException {
         Objects.requireNonNull(fault, "Fault must not be null");
         try {
             // initialize non-data type
@@ -119,7 +119,7 @@ public class FrpcMarshaller {
             writeObject(fault.getStatusCode());
             writeObject(fault.getStatusMessage());
         } catch (IOException e) {
-            throw new FrpcDataException("Error while writing FRPC fault into the stream", e);
+            throw new FrpcDataProcessingException("Error while writing FRPC fault into the stream", e);
         }
     }
 
@@ -361,7 +361,7 @@ public class FrpcMarshaller {
                 // check that the key is a string
                 Object key = entry.getKey();
                 if(key != null && key.getClass() != String.class) {
-                    throw new FrpcDataException(
+                    throw new FrpcDataProcessingException(
                             "Cannot serialize value " + key + " as map key, only String is valid type for map keys");
                 }
                 writeStructMember((String) entry.getKey());
@@ -384,7 +384,7 @@ public class FrpcMarshaller {
             calendar.setTimeZone(TimeZone.getTimeZone(zonedDateTime.getZone()));
             writeCalendar(calendar);
         } else {
-            throw new FrpcDataException("Error while marshalling object " + object +
+            throw new FrpcDataProcessingException("Error while marshalling object " + object +
                     ", type " + object.getClass() + " is not a supported FRPC type");
         }
     }

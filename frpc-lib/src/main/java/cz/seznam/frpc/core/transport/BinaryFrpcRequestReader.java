@@ -8,6 +8,8 @@ import java.io.InputStream;
 import java.util.Objects;
 
 /**
+ * Specialization of {@link FrpcRequestReader} capable of reading {@code FrpcRequest}s from binary {@code FRPC} format.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class BinaryFrpcRequestReader implements FrpcRequestReader {

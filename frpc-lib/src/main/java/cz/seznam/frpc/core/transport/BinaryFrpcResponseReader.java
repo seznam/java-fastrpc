@@ -8,6 +8,9 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 
 /**
+ * Specialization of {@link FrpcRequestReader} capable of reading {@code FRPC} method response from binary {@code FRPC}
+ * format.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class BinaryFrpcResponseReader implements FrpcResponseReader {

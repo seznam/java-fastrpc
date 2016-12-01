@@ -1,5 +1,8 @@
 package cz.seznam.frpc.core;
 
+/**
+ * Collection of constants denoting individual data types specified by the {@code FastRPC} protocol.
+ */
 public class FrpcConstants {
 
     public static final byte TYPE_BOOL = 0x10;

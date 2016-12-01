@@ -1,9 +1,6 @@
 package cz.seznam.frpc.client;
 
-import cz.seznam.frpc.core.transport.FrpcRequest;
-import cz.seznam.frpc.core.transport.FrpcRequestWriter;
-import cz.seznam.frpc.core.transport.FrpcResponseReader;
-import cz.seznam.frpc.core.transport.Protocol;
+import cz.seznam.frpc.core.transport.*;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -24,6 +21,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
+ * Represents a {@code FRPC} method call ready to be executed. Instances are created by {@link FrpcClient} using its
+ * current setting, yet several properties (like request timeouts for example) can be overridden using methods of this
+ * class.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class FrpcMethodCall {
@@ -62,12 +63,24 @@ public class FrpcMethodCall {
         this.parameters = parameters;
     }
 
+    /**
+     * Overrides implicit parameters set by the {@link FrpcClient} by given value.
+     *
+     * @param implicitParameters implicit parameters override
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     */
     public FrpcMethodCall withImplicitParameters(Object... implicitParameters) {
         this.implicitParameters = implicitParameters == null ? null :
                 Arrays.stream(implicitParameters).collect(Collectors.toList());
         return this;
     }
 
+    /**
+     * Adds given parameters to the array of implicit parameters set by the {@link FrpcClient}.
+     *
+     * @param implicitParameters implicit parameters to add to those set by the {@link FrpcClient}
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     */
     public FrpcMethodCall withAddedImplicitParameters(Object... implicitParameters) {
         if (ArrayUtils.isNotEmpty(implicitParameters)) {
             Arrays.stream(implicitParameters).forEach(this.implicitParameters::add);
@@ -75,51 +88,132 @@ public class FrpcMethodCall {
         return this;
     }
 
+    /**
+     * Configures this {@code FrpcMethodCall} to <i>prepend</i> implicit parameters before regular method parameters.
+     *
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     */
+    public FrpcMethodCall withImplicitParametersPrepended() {
+        this.prependImplicitParams = true;
+        return this;
+    }
+
+    /**
+     * Configures this {@code FrpcMethodCall} to <i>append</i> implicit parameters after regular method parameters.
+     *
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     */
+    public FrpcMethodCall withImplicitParametersAppended() {
+        this.prependImplicitParams = false;
+        return this;
+    }
+
+    /**
+     * Overrides request headers set by the {@link FrpcClient} by given value.
+     *
+     * @param headers request headers override
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     */
     public FrpcMethodCall withHeaders(Map<String, String> headers) {
         this.headers = headers;
         return this;
     }
 
+    /**
+     * Adds given name-value pair to request headers to be send with the request.
+     * <p>
+     * Note that headers are stored in a {@link Map} by their names, so if there already is a header of the same name
+     * as the one currently being added, then its value will be <i>overwritten</i> by the new value.
+     *
+     * @param name name of the header
+     * @param value value od the header
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     */
     public FrpcMethodCall withNewHeader(String name, String value) {
         this.headers.put(name, value);
         return this;
     }
 
+    /**
+     * Adds given collection of name-value pairs to request headers to be send with the request.
+     * <p>
+     * Note that headers are also stored in a {@link Map} by their names, so if there already is a header of the same name
+     * as one of those currently being added, then its value will be <i>overwritten</i> by the new value.
+     *
+     * @param headers headers to add to the request
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     */
     public FrpcMethodCall withNewHeaders(Map<String, String> headers) {
         this.headers.putAll(Objects.requireNonNull(headers));
         return this;
     }
 
+    /**
+     * Overrides "connect timeout" set by the {@link FrpcClient} by given value.
+     *
+     * @param newTimeout new timeout value
+     * @param timeUnit time unit of given value
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     * @see FrpcClient.Builder#connectTimeout(long, TimeUnit)
+     */
     public FrpcMethodCall withConnectTimeout(long newTimeout, TimeUnit timeUnit) {
         this.connectTimeout = newTimeout;
         this.connectTimeoutTimeUnit = Objects.requireNonNull(timeUnit);
         return this;
     }
 
+    /**
+     * Overrides "socket timeout" set by the {@link FrpcClient} by given value.
+     *
+     * @param newTimeout new timeout value
+     * @param timeUnit time unit of given value
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     * @see FrpcClient.Builder#socketTimeout(long, TimeUnit)
+     */
     public FrpcMethodCall withSocketTimeout(long newTimeout, TimeUnit timeUnit) {
         this.socketTimeout = newTimeout;
         this.socketTimeoutTimeUnit = Objects.requireNonNull(timeUnit);
         return this;
     }
 
+    /**
+     * Overrides "attempt count" set by the {@link FrpcClient} by given value.
+     *
+     * @param newAttemptCount new attempt count value
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     * @see FrpcClient.Builder#attemptCount(int)
+     */
     public FrpcMethodCall withAttemptCount(int newAttemptCount) {
         this.maxAttemptCount = newAttemptCount;
         return this;
     }
 
+    /**
+     * Overrides "retry delay" set by the {@link FrpcClient} by given value.
+     *
+     * @param newRetryDelay new retry delay value
+     * @param timeUnit time unit of given value
+     * @return this {@code FrpcMethodCall} instance so that setters can be chained
+     * @see FrpcClient.Builder#retryDelay(int, TimeUnit)
+     */
     public FrpcMethodCall withRetryDelay(int newRetryDelay, TimeUnit timeUnit) {
         this.retryDelay = newRetryDelay;
         this.retryDelayTimeUnit = Objects.requireNonNull(timeUnit);
         return this;
     }
 
-    public FrpcCallResult getResult() {
+    /**
+     * Invokes the remote method and returns its result wrapped in a {@link FrpcCallResult}.
+     *
+     * @return the result of remote method invocation
+     */
+    public FrpcCallResult<Object> getResult() {
         return doRemoteInvocation();
     }
 
-    private FrpcCallResult doRemoteInvocation() {
+    private FrpcCallResult<Object> doRemoteInvocation() {
         int attempts = 0;
-        FrpcCallResult output = null;
+        FrpcCallResult<Object> output = null;
 
         do {
             attempts++;
@@ -127,8 +221,7 @@ public class FrpcMethodCall {
                 // get FrpcRequestWriter for current protocol
                 FrpcRequestWriter requestWriter = FrpcRequestWriter.forProtocol(protocol);
                 // create FrpcRequest
-                FrpcRequest frpcRequest = new FrpcRequest(method, implicitParameters, prependImplicitParams,
-                        parameters);
+                FrpcRequest frpcRequest = new FrpcRequest(method, prepareMethodParameters());
                 // write it
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 requestWriter.write(frpcRequest, baos);
@@ -149,7 +242,7 @@ public class FrpcMethodCall {
                     // unmarshall the response body into an object
                     Object responseObject = responseReader.read(body, contentLength);
                     // create FRPC result out of the unmarshalled response
-                    output = new FrpcCallResult(responseObject, response.getStatusLine().getStatusCode());
+                    output = new FrpcCallResult<>(responseObject, response.getStatusLine().getStatusCode());
                 } finally {
                     EntityUtils.consumeQuietly(response.getEntity());
                 }
@@ -157,7 +250,7 @@ public class FrpcMethodCall {
                 break;
             } catch (IOException e) {
                 if (attempts == maxAttemptCount) {
-                    throw new FrpcCallException(
+                    throw new FrpcTransportException(
                             "An error occurred repeatedly (" + maxAttemptCount + " times) while trying to call FRPC method " + method,
                             e);
                 }
@@ -194,6 +287,32 @@ public class FrpcMethodCall {
         headers.forEach(request::setHeader);
         // return the request
         return request;
+    }
+
+    private List<Object> prepareMethodParameters() {
+        // if no implicit parameters are given
+        if (implicitParameters == null || implicitParameters.isEmpty()) {
+            // return just regular method parameters
+            return parameters;
+        } else {
+            // if there are implicit parameters but no regular parameters
+            if (parameters == null || parameters.isEmpty()) {
+                // return just implicit ones
+                return implicitParameters;
+            } else {
+                // if there is both, prepend or append implicit parameters
+                List<Object> params = new ArrayList<>();
+                if (prependImplicitParams) {
+                    params.addAll(implicitParameters);
+                }
+                params.addAll(parameters);
+                if (!prependImplicitParams) {
+                    params.addAll(implicitParameters);
+                }
+                // and return just one list of all parameters
+                return params;
+            }
+        }
     }
 
 }

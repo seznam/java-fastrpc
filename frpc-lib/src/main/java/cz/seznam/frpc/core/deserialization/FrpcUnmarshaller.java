@@ -1,7 +1,7 @@
 package cz.seznam.frpc.core.deserialization;
 
 import cz.seznam.frpc.core.FrpcConstants;
-import cz.seznam.frpc.core.FrpcDataException;
+import cz.seznam.frpc.core.FrpcDataProcessingException;
 import cz.seznam.frpc.core.transport.FrpcFault;
 import cz.seznam.frpc.core.transport.FrpcRequest;
 
@@ -50,9 +50,9 @@ public class FrpcUnmarshaller {
      * </ol>
      *
      * @return instance of {@code FrpcRequest} deserialized from the stream
-     * @throws FrpcDataException if anything goes wrong during deserialization
+     * @throws FrpcDataProcessingException if anything goes wrong during deserialization
      */
-    public FrpcRequest readRequest() throws FrpcDataException {
+    public FrpcRequest readRequest() throws FrpcDataProcessingException {
         // read magic number
         readMagic();
         // read method value
@@ -88,9 +88,9 @@ public class FrpcUnmarshaller {
      * </ol>
      *
      * @return instance of {@code FrpcRequest} deserialized from the stream
-     * @throws FrpcDataException if anything goes wrong during deserialization
+     * @throws FrpcDataProcessingException if anything goes wrong during deserialization
      */
-    public Object readResponse() throws FrpcDataException {
+    public Object readResponse() throws FrpcDataProcessingException {
         // read magic number
         readMagic();
         // make sure that we are reading method response or fault
@@ -101,7 +101,7 @@ public class FrpcUnmarshaller {
             Object response = readObject();
             // check if it's not the NO_MORE_OBJECTS marker
             if(response == NO_MORE_OBJECTS) {
-                throw new FrpcDataException("The stream does not contain any response value");
+                throw new FrpcDataProcessingException("The stream does not contain any response value");
             }
             // return the response
             return response;
@@ -109,26 +109,26 @@ public class FrpcUnmarshaller {
             // read status code
             Object statusCode = readObject();
             if(statusCode == NO_MORE_OBJECTS) {
-                throw new FrpcDataException(
+                throw new FrpcDataProcessingException(
                         "Data indicates the stream contains a FRPC fault, yet no status code is present");
             } else if(!(statusCode instanceof Integer)) {
-                throw new FrpcDataException(
+                throw new FrpcDataProcessingException(
                         "Erro reading FRPC fault, the status code is not an Integer");
             }
             // read status message
             Object statusMessage = readObject();
             if(statusMessage == NO_MORE_OBJECTS) {
-                throw new FrpcDataException(
+                throw new FrpcDataProcessingException(
                         "Data indicates the stream contains a FRPC fault, yet no status code is present");
             } else if(statusMessage != null && !(statusMessage instanceof String)) {
-                throw new FrpcDataException(
+                throw new FrpcDataProcessingException(
                         "Erro reading FRPC fault, the status message is not a String");
             }
             // create the fault
             return new FrpcFault(((Integer) statusCode), ((String) statusMessage));
         }
         // we don't know how to read the response
-        throw new FrpcDataException("The stream does not contain properly formed method response");
+        throw new FrpcDataProcessingException("The stream does not contain properly formed method response");
     }
 
     private void readMagic() {
@@ -136,24 +136,24 @@ public class FrpcUnmarshaller {
             // 0xCA 0x11 = CALL
             if (!(readByte() == FrpcConstants.MAGIC_NUMBER[0] && readByte() == FrpcConstants.MAGIC_NUMBER[1])) {
                 // stream does not start with "CA11", that's a problem
-                throw new FrpcDataException("The stream does not start with mandatory \"magic number\" 0xCA 0x11");
+                throw new FrpcDataProcessingException("The stream does not start with mandatory \"magic number\" 0xCA 0x11");
             } else {
                 // OK, "CALL" is there, check if the protocol version matches
                 byte major = readByte();
                 byte minor = readByte();
                 if(!(major == FrpcConstants.MAGIC_NUMBER[2] && minor == FrpcConstants.MAGIC_NUMBER[3])) {
-                    throw new FrpcDataException("Protocol version contained in the \"magic number\" does not match, " +
+                    throw new FrpcDataProcessingException("Protocol version contained in the \"magic number\" does not match, " +
                             "expected version is " + FrpcConstants.MAGIC_NUMBER[2] + "." + FrpcConstants.MAGIC_NUMBER[3] +
                             ", but version read from the stream is " + major + "." + minor);
                 }
             }
         } catch (EndOfStreamException e) {
-            throw new FrpcDataException(
+            throw new FrpcDataProcessingException(
                     "Premature end of content, not even a \"magic number\" could be read from the stream", e);
         }
     }
 
-    private String readMethodCall() throws FrpcDataException {
+    private String readMethodCall() throws FrpcDataProcessingException {
         // read the type identifier
         int data = read();
         // check that is is a method call
@@ -161,7 +161,7 @@ public class FrpcUnmarshaller {
             // read the actual method value
             return readMethodName();
         } else {
-            throw new FrpcDataException(
+            throw new FrpcDataProcessingException(
                     "Error while reading method call, number " + data + " is not a \"method call\"" +
                             " identifier");
         }
@@ -175,16 +175,16 @@ public class FrpcUnmarshaller {
         return (byte) read(checkEnd);
     }
 
-    private int read() throws FrpcDataException {
+    private int read() throws FrpcDataProcessingException {
         return read(true);
     }
 
-    private int read(boolean checkEnd) throws FrpcDataException {
+    private int read(boolean checkEnd) throws FrpcDataProcessingException {
         int data;
         try {
             data = input.read();
         } catch (IOException e) {
-            throw new FrpcDataException("Error when reading data from the stream: ", e);
+            throw new FrpcDataProcessingException("Error when reading data from the stream: ", e);
         }
         if (checkEnd && data == -1) {
             throw new EndOfStreamException("End of stream reached while reading data from the input stream");
@@ -192,11 +192,11 @@ public class FrpcUnmarshaller {
         return data;
     }
 
-    private FrpcFault readFault() throws FrpcDataException {
+    private FrpcFault readFault() throws FrpcDataProcessingException {
         return new FrpcFault((Integer) readObject(), (String) readObject());
     }
 
-    private String readString(int data) throws FrpcDataException {
+    private String readString(int data) throws FrpcDataProcessingException {
         int octets = data & FrpcConstants.MASK_ADD;
         int length = 0;
         for (int i = 0; i <= octets; i++) {
@@ -210,7 +210,7 @@ public class FrpcUnmarshaller {
         return new String(buf.array(), StandardCharsets.UTF_8);
     }
 
-    private Number readFloatingPointType() throws FrpcDataException {
+    private Number readFloatingPointType() throws FrpcDataProcessingException {
         long binaryValue = 0;
         for (int i = 0; i < 8; i++) {
             binaryValue |= (long) read() << (i << 3);
@@ -224,7 +224,7 @@ public class FrpcUnmarshaller {
         }
     }
 
-    private Number readIntegralType(int data, boolean positive) throws FrpcDataException {
+    private Number readIntegralType(int data, boolean positive) throws FrpcDataProcessingException {
         int octets = data & FrpcConstants.MASK_ADD;
         long value = 0;
 
@@ -243,12 +243,12 @@ public class FrpcUnmarshaller {
         }
     }
 
-    private Boolean readBoolean(int data) throws FrpcDataException {
+    private Boolean readBoolean(int data) throws FrpcDataProcessingException {
         int octets = data & 1;
         return octets == 1;
     }
 
-    private Object[] readArray(int data) throws FrpcDataException {
+    private Object[] readArray(int data) throws FrpcDataProcessingException {
         int octets = data & FrpcConstants.MASK_ADD;
         int length = 0;
         for (int i = 0; i <= octets; i++) {
@@ -261,7 +261,7 @@ public class FrpcUnmarshaller {
         return array;
     }
 
-    private Map<String, Object> readStruct(int data) throws FrpcDataException {
+    private Map<String, Object> readStruct(int data) throws FrpcDataProcessingException {
         int octets = data & FrpcConstants.MASK_ADD;
         int length = 0;
         for (int i = 0; i <= octets; i++) {
@@ -280,7 +280,7 @@ public class FrpcUnmarshaller {
         return struct;
     }
 
-    private Calendar readDateTime() throws FrpcDataException {
+    private Calendar readDateTime() throws FrpcDataProcessingException {
         int data;
 
         int zone; // (8b)
@@ -328,7 +328,7 @@ public class FrpcUnmarshaller {
         return datetime;
     }
 
-    private byte[] readBinary(int data) throws FrpcDataException {
+    private byte[] readBinary(int data) throws FrpcDataProcessingException {
         int octets = data & FrpcConstants.MASK_ADD;
         int length = 0;
         for (int i = 0; i <= octets; i++) {
@@ -342,7 +342,7 @@ public class FrpcUnmarshaller {
         return binary;
     }
 
-    private String readMethodName() throws FrpcDataException {
+    private String readMethodName() throws FrpcDataProcessingException {
         // read length of method value
         int length = read();
 
@@ -353,7 +353,7 @@ public class FrpcUnmarshaller {
         return new String(arr);
     }
 
-    private Object readObject() throws FrpcDataException {
+    private Object readObject() throws FrpcDataProcessingException {
         Object result;
         // check if there is anything left to read
         int data = read(false);
@@ -401,7 +401,7 @@ public class FrpcUnmarshaller {
                 result = null;
                 break;
             default:
-                throw new FrpcDataException("Unmarshalling error: unknown type specified by type definition "
+                throw new FrpcDataProcessingException("Unmarshalling error: unknown type specified by type definition "
                         + (data & FrpcConstants.MASK));
         }
         return result;

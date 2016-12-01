@@ -17,9 +17,6 @@ public abstract class FrpcType<T> {
     public static final FrpcType<Map<String, Object>> STRUCT = new FrpcType<Map<String, Object>>() {
     };
 
-    /**
-     * The actual type argument of this instance.
-     */
     private final Type type;
 
     protected FrpcType() {

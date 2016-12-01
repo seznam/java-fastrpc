@@ -1,10 +1,19 @@
 package cz.seznam.frpc.core.transport;
 
 /**
+ * Specialization of {@link FrpcReader} capable of reading {@code FRPC} responses as objects.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public interface FrpcResponseReader extends FrpcReader<Object> {
 
+    /**
+     * Returns proper implementation of the reader for given protocol.
+     *
+     * @param protocol protocol to return reader for
+     * @return proper implementation of the reader for given protocol
+     * @throws IllegalArgumentException if given protocol is unknown
+     */
     public static FrpcResponseReader forProtocol(Protocol protocol) {
         switch (protocol) {
             case FRPC:

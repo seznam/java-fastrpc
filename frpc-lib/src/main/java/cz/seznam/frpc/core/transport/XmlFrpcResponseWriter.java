@@ -7,12 +7,14 @@ import org.xml.sax.SAXException;
 import java.io.OutputStream;
 
 /**
+ * Implementation of {@link AbstractFrpcResponseWriter} capable of writing responses into {@code XML-RPC} format.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
-public class XmlFrpcResponseWriter implements FrpcResponseWriter {
+public class XmlFrpcResponseWriter extends AbstractFrpcResponseWriter {
 
     @Override
-    public void write(Object response, OutputStream outputStream) throws FrpcTransportException {
+    protected void writeResponse(Object response, OutputStream outputStream) throws FrpcTransportException {
         // create new XmlRpcWriter
         XmlRpcWriter writer = XmlRpcUtils.newXmlRpcWriter(outputStream);
         // write the response
@@ -24,7 +26,7 @@ public class XmlFrpcResponseWriter implements FrpcResponseWriter {
     }
 
     @Override
-    public void writeFault(FrpcFault fault, OutputStream outputStream) throws FrpcTransportException {
+    protected void writeFault(FrpcFault fault, OutputStream outputStream) throws FrpcTransportException {
         // create new XmlRpcWriter
         XmlRpcWriter writer = XmlRpcUtils.newXmlRpcWriter(outputStream);
         // write the response

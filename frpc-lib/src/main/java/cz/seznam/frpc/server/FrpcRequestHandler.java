@@ -1,6 +1,6 @@
 package cz.seznam.frpc.server;
 
-import cz.seznam.frpc.core.FrpcDataException;
+import cz.seznam.frpc.core.FrpcDataProcessingException;
 import cz.seznam.frpc.core.transport.*;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.eclipse.jetty.http.HttpHeader;
@@ -127,20 +127,14 @@ public class FrpcRequestHandler extends AbstractHandler {
         return frpcRequestProcessor.process(frpcRequest);
     }
 
-    private void handleResponse(Object result, HttpServletResponse response, Protocol protocol) throws FrpcDataException,
+    private void handleResponse(Object result, HttpServletResponse response, Protocol protocol) throws FrpcDataProcessingException,
             IOException {
         // create response writer for given protocol
         FrpcResponseWriter responseWriter = FrpcResponseWriter.forProtocol(protocol);
         // write response to byte array so that we can set content length header properly
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        // check whether the result is not in fact a fault
-        if(result instanceof FrpcFault) {
-            // if it is, write fault
-            responseWriter.writeFault((FrpcFault) result, baos);
-        } else {
-            // write result to the response
-            responseWriter.write(result, baos);
-        }
+        // write result to the response
+        responseWriter.write(result, baos);
         // set response properties
         response.setStatus(HttpStatus.OK_200);
         response.setContentType(protocol.getContentType());

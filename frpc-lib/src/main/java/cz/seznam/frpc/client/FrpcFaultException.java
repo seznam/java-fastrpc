@@ -10,9 +10,6 @@ import cz.seznam.frpc.core.transport.FrpcFault;
  */
 public class FrpcFaultException extends RuntimeException {
 
-    /**
-     * Wrapped instance of {@link FrpcFault}.
-     */
     private FrpcFault fault;
 
     /**

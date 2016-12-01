@@ -1,6 +1,6 @@
 package cz.seznam.frpc.core.transport;
 
-import cz.seznam.frpc.core.FrpcDataException;
+import cz.seznam.frpc.core.FrpcDataProcessingException;
 import cz.seznam.frpc.core.XmlRpcUtils;
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.common.TypeFactoryImpl;
@@ -14,6 +14,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
+ * Specialization of {@link FrpcRequestReader} capable of reading {@code FRPC} method response from {@code XML-RPC}
+ * format.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class XmlFrpcResponseReader implements FrpcResponseReader {
@@ -40,7 +43,7 @@ public class XmlFrpcResponseReader implements FrpcResponseReader {
             // return the parsed object
             return response;
         } catch (XmlRpcException | SAXException | IOException e) {
-            throw new FrpcDataException("Error while trying to parse request data", e);
+            throw new FrpcDataProcessingException("Error while trying to parse request data", e);
         }
     }
 }

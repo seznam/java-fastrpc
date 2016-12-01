@@ -1,7 +1,10 @@
 package cz.seznam.frpc;
 
+import cz.seznam.frpc.client.FrpcCallResult;
 import cz.seznam.frpc.client.FrpcClient;
+import cz.seznam.frpc.client.FrpcFaultException;
 import cz.seznam.frpc.core.FrpcType;
+import cz.seznam.frpc.core.transport.FrpcFault;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -9,11 +12,16 @@ import java.util.stream.Collectors;
 
 public class FrpcDemoClient {
     public static void main(String[] args) {
+
+        /* CLIENT CREATION */
+
         // create new FRPC client using builder-style API
         FrpcClient client = FrpcClient.builder()
                 .url("http://localhost:9898/RPC2")
                 .usingDefaultHttpClient()
                 .build();
+
+        /* CALLING METHODS AND GETTING RESULTS AS POJOS */
 
         // this is what a simple call looks like
         Long sum = client.call("numberOperations.add", 3, 2).as(Long.class);
@@ -110,5 +118,29 @@ public class FrpcDemoClient {
                 });
         System.out.println("Result of otherOperations.getComplexValue: " + complexResult);
 
+        /* ERROR HANDLING */
+
+        // errors can be handler either by explicitly checking for them
+        FrpcCallResult result = client.call("otherOperations.getFaultyInteger");
+        if(result.isFault()) {
+            printFault(result.asFault());
+        }
+
+        // or by trying to get result as desired type and catching FrpcFaultException...
+        try {
+            int faultyInt = client.call("otherOperations.getFaultyInteger").as(int.class);
+            System.out.println("Contemplating what to do with int value " + faultyInt);
+        } catch (FrpcFaultException e) {
+            // ... from which the fault can be extracted
+            printFault(e.getFault());
+        }
+
     }
+
+    private static void printFault(FrpcFault fault) {
+        System.out.println("There was an error while calling FRPC method \"otherOperations.getFaultyInteger\", " +
+                "status code: " + fault.getStatusCode() + ", status message: " + fault.getStatusMessage());
+    }
+
+
 }

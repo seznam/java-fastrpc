@@ -29,4 +29,8 @@ public class OtherOperations {
                 .flatMap(Collection::stream).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
+    public Integer getFaultyInteger() {
+        throw new RuntimeException("No integer for you!");
+    }
+
 }

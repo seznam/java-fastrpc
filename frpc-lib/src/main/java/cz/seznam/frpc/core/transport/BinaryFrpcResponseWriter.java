@@ -5,12 +5,14 @@ import cz.seznam.frpc.core.serialization.FrpcMarshaller;
 import java.io.OutputStream;
 
 /**
+ * Implementation of {@link AbstractFrpcResponseWriter} capable of writing responses into binary {@code FRPC} format.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
-public class BinaryFrpcResponseWriter implements FrpcResponseWriter {
+public class BinaryFrpcResponseWriter extends AbstractFrpcResponseWriter {
 
     @Override
-    public void write(Object response, OutputStream outputStream) throws FrpcTransportException {
+    protected void writeResponse(Object response, OutputStream outputStream) throws FrpcTransportException {
         writeInternal(response, outputStream);
     }
 
