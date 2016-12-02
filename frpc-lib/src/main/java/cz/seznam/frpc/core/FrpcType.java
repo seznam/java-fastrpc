@@ -1,11 +1,15 @@
 package cz.seznam.frpc.core;
 
+import cz.seznam.frpc.client.FrpcCallResult;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Map;
 
 /**
- * {@code FrpcType} serves as type reference for type-safe deserialization of values.
+ * {@code FrpcType} serves as type reference for type-safe deserialization of values. Typical usage is subclassing this
+ * class and passing it to methods of {@link FrpcCallResult}. All instances of this class are inherently immutable so it
+ * is safe (and recommended) to reuse them.
  *
  * @author David Moidl david.moidl@firma.seznam.cz
  */

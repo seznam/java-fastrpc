@@ -37,10 +37,10 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
     @Override
     public FrpcRequestProcessingResult process(FrpcRequest frpcRequest) throws Exception {
         // get request method value
-        String requestMethodName = frpcRequest.getMethodName();
-        LOGGER.debug("Unmarshalled FRPC method value: {}", requestMethodName);
+        String fullMethodName = frpcRequest.getMethodName();
+        LOGGER.debug("Unmarshalled FRPC method value: {}", fullMethodName);
         // check if there is a dot somewhere in the method value
-        int lastDotIndex = requestMethodName.lastIndexOf('.');
+        int lastDotIndex = fullMethodName.lastIndexOf('.');
 
         String handlerName;
         String handlerMethodName;
@@ -48,24 +48,24 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
         if (lastDotIndex == -1) {
             // handler is not specified and the whole unmarshalled method value is the value of a method
             handlerName = DEFAULT_HANDLER_NAME;
-            handlerMethodName = requestMethodName;
-        } else if (lastDotIndex == 0 || lastDotIndex == requestMethodName.length() - 1) {
+            handlerMethodName = fullMethodName;
+        } else if (lastDotIndex == 0 || lastDotIndex == fullMethodName.length() - 1) {
             throw new IllegalArgumentException("FRPC method value must not start or end with a dot");
         } else {
             // otherwise everything up to the last dot is the handler value
-            handlerName = requestMethodName.substring(0, lastDotIndex);
+            handlerName = fullMethodName.substring(0, lastDotIndex);
             // and the rest is the actual method value
-            handlerMethodName = requestMethodName.substring(lastDotIndex + 1, requestMethodName.length());
+            handlerMethodName = fullMethodName.substring(lastDotIndex + 1, fullMethodName.length());
         }
         LOGGER.debug("Delegating FRPC method call to method \"{}\" of handler mapped to \"{}\"", handlerMethodName,
                 handlerName);
 
         // invoke the method
-        return invokeHandler(handlerName, handlerMethodName, requestMethodName, frpcRequest.getParametersAsArray());
+        return invokeHandler(handlerName, handlerMethodName, fullMethodName, frpcRequest.getParametersAsArray());
     }
 
     private FrpcRequestProcessingResult invokeHandler(String handlerName, String handlerMethodName,
-                                                      String requestMethodName, Object[] parameters)
+                                                      String fullMethodName, Object[] parameters)
             throws Exception {
         // try to find the handler first
         FrpcMethodHandlerAndMethods methodHandler = handlerMapping.get(handlerName);
@@ -87,7 +87,7 @@ public class HandlerUsingFrpcRequestProcesor implements FrpcRequestProcessor {
 
         // try to unmarshall arguments according to method parameter types
         Object[] arguments = FrpcTypesConverter
-                .checkAndConvertMethodParameters(requestMethodName, parameterTypes, parameters);
+                .checkAndConvertMethodParameters(fullMethodName, parameterTypes, parameters);
 
         // call the method handler
         Object methodResult = methodHandler.getFrpcHandler().handleFrpcMethodCall(handlerMethodName, arguments);

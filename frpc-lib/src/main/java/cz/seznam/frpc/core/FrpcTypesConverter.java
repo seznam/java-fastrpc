@@ -1,5 +1,7 @@
 package cz.seznam.frpc.core;
 
+import cz.seznam.frpc.core.deserialization.FrpcUnmarshaller;
+import cz.seznam.frpc.core.serialization.FrpcMarshaller;
 import cz.seznam.frpc.core.transport.FrpcFault;
 import org.apache.commons.lang3.ClassUtils;
 import org.slf4j.Logger;
@@ -13,6 +15,9 @@ import java.util.*;
 import java.util.function.Supplier;
 
 /**
+ * Core component of the framework which handles conversion of POJOs from/to objects writable/readable by
+ * {@link FrpcMarshaller} and {@link FrpcUnmarshaller} respectively.
+ *
  * @author David Moidl david.moidl@firma.seznam.cz
  */
 public class FrpcTypesConverter {
@@ -28,7 +33,7 @@ public class FrpcTypesConverter {
 
     static {
         Set<Class<?>> compatibleClasses = new HashSet<>(
-                Arrays.asList(String.class, Boolean.class, Calendar.class, Date.class, LocalDateTime.class,
+                Arrays.asList(String.class, Calendar.class, Date.class, LocalDateTime.class,
                         ZonedDateTime.class, Object.class, FrpcFault.class));
         OTHER_COMPATIBLE_TYPES = Collections.unmodifiableSet(compatibleClasses);
 
@@ -43,9 +48,6 @@ public class FrpcTypesConverter {
         collectionInterfaceInstantiators.put(NavigableSet.class, TreeSet::new);
         collectionInterfaceInstantiators.put(Queue.class, LinkedList::new);
         collectionInterfaceInstantiators.put(Deque.class, LinkedList::new);
-        collectionInterfaceInstantiators.put(Map.class, HashMap::new);
-        collectionInterfaceInstantiators.put(SortedMap.class, TreeMap::new);
-        collectionInterfaceInstantiators.put(NavigableMap.class, TreeMap::new);
         COLLECTION_INTERFACE_INSTANTIATORS = collectionInterfaceInstantiators;
 
         Map<Class<?>, Supplier<?>> mapInterfaceInstantiators = new HashMap<>();
@@ -59,16 +61,75 @@ public class FrpcTypesConverter {
         OTHER_SUPPORTED_MAP_TYPES = new HashSet<>();
     }
 
+    /**
+     * Checks whether given class represents a <i>raw</i> type (that is non-generic type) supported by this converter.
+     * <p/>
+     * If a class is <i>supported</i>, then this converter is capable of converting its instances into objects which are
+     * compatible with {@code FastRPC} protocol.
+     * <p/>
+     * Supported raw types are:
+     * <ul>
+     * <li>Java primitive types</li>
+     * <li>Wrappers of Java primitive types ({@code Integer}, {@code Long}, etc.)</li>
+     * <li>Array types representable by {@code Class}</li>
+     * <li>Many collection types (see {@link #isSupportedCollectionType(Class)}</li>
+     * <li>Many {@code Map} types (see {@link #isSupportedMapType(Class)}</li>
+     * <li>
+     * {@code String}, {@code Calendar}, {@code Date}, {@code LocalDateTime}, {@code ZonedDateTime} and
+     * {@code Object}
+     * </li>
+     * </ul>
+     *
+     * @param examined class to check for being supported by this converter
+     * @return {@code true} if given class is <i>supported</i> by this converter and {@code false} otherwise
+     */
     public static boolean isSupportedRawType(Class<?> examined) {
         return isSupportedPrimitiveOrWrapper(examined) || examined.isArray() || OTHER_COMPATIBLE_TYPES
                 .contains(examined) || isSupportedCollectionType(examined) || isSupportedMapType(examined);
     }
 
+    /**
+     * Checks whether given class represents a primitive type or its wrapper type and is supported by this converter.
+     * <p/>
+     * If a class is <i>supported</i>, then this converter is capable of converting its instances into objects which are
+     * compatible with {@code FastRPC} protocol.
+     *
+     * @param examined class to check for being supported by this converter
+     * @return {@code true} if given class is <i>supported</i> by this converter and {@code false} otherwise
+     */
     public static boolean isSupportedPrimitiveOrWrapper(Class<?> examined) {
         return SUPPORTED_PRIMITIVE_TYPES.contains(examined) || SUPPORTED_PRIMITIVE_TYPES
                 .contains(ClassUtils.wrapperToPrimitive(examined));
     }
 
+    /**
+     * Checks whether given class represents a {@code Map} type or supported by this converter.
+     * <p/>
+     * If a class is <i>supported</i>, then this converter is capable of converting its instances into objects which are
+     * compatible with {@code FastRPC} protocol.
+     * <p/>
+     * Supported {@code Map} types are:
+     * <ul>
+     * <li>
+     * Common {@code Map} interface from {@code java.util}, specifically:
+     * <ul>
+     * <li>
+     * {@link Map} for which {@link HashMap} gets instantiated
+     * </li>
+     * <li>
+     * {@link SortedMap} and {@link NavigableMap} for which {@link TreeMap} gets instantiated
+     * </li>
+     * </ul>
+     * </li>
+     * <li>
+     * Any other non-abstract {@link Map} implementations which have accessible default no-arg constructor.
+     * </li>
+     * </ul>
+     *
+     * @param examined class to check for being supported {@code Map} type
+     * @return {@code true} if given class is a {@code Map} type and is <i>supported</i> by this converter; {@code
+     * false} otherwise
+     */
     public static boolean isSupportedMapType(Class<?> examined) {
         // check for the class being one of the supported map interfaces or other supported map implementation
         if (MAP_INTERFACE_INSTANTIATORS.containsKey(examined) || OTHER_SUPPORTED_MAP_TYPES.contains(examined)) {
@@ -91,6 +152,40 @@ public class FrpcTypesConverter {
         return false;
     }
 
+    /**
+     * Checks whether given class represents a {@code Collection} type or supported by this converter.
+     * <p/>
+     * If a class is <i>supported</i>, then this converter is capable of converting its instances into objects which are
+     * compatible with {@code FastRPC} protocol.
+     * <p/>
+     * Supported {@code Collection} types are:
+     * <ul>
+     * <li>
+     * Common {@code Collection} interface from {@code java.util}, specifically:
+     * <ul>
+     * <li>
+     * {@link List} for which {@link ArrayList} gets instantiated
+     * </li>
+     * <li>
+     * {@link Set} for which {@link HashSet} gets instantiated
+     * </li>
+     * <li>
+     * {@link SortedSet} and {@link NavigableSet} for which {@link TreeSet} gets instantiated
+     * </li>
+     * <li>
+     * {@link Queue} and {@link Deque} for which {@link LinkedList} gets instantiated
+     * </li>
+     * </ul>
+     * </li>
+     * <li>
+     * Any other non-abstract {@link Collection} implementations which have accessible default no-arg constructor.
+     * </li>
+     * </ul>
+     *
+     * @param examined class to check for being supported {@code Collection} type
+     * @return {@code true} if given class is a {@code Collection} type and is <i>supported</i> by this converter;
+     * {@code false} otherwise
+     */
     public static boolean isSupportedCollectionType(Class<?> examined) {
         // check for the class being one of the supported collection interfaces or other supported collection
         // implementation
@@ -115,37 +210,79 @@ public class FrpcTypesConverter {
         return false;
     }
 
+    /**
+     * Converts given {@code Calendar} to {@code Date}.
+     *
+     * @param calendar calendar instance to be converted to corresponding {@code Date}
+     * @return {@code Date} instance corresponding to date represented by given {@code Calendar}
+     */
     public static Date calendarToDate(Calendar calendar) {
         return Objects.requireNonNull(calendar).getTime();
     }
 
+    /**
+     * Converts given {@code Calendar} to {@code LocalDateTime}. The conversion is done by converting given {@code
+     * Calendar} to {@code Instant} from which the {@code LocalDateTime} instance is created using <strong>system
+     * default</strong> time zone. Time zone specified by the calendar is ignored.
+     *
+     * @param calendar calendar instance to be converted to corresponding {@code LocalDateTime} using <strong>system
+     *                 default</strong> time zone
+     * @return {@code LocalDateTime} instance corresponding to date represented by given {@code Calendar} w.r.t.
+     * <strong>system default</strong> time zone
+     */
     public static LocalDateTime calendarToLocalDateTime(Calendar calendar) {
         Objects.requireNonNull(calendar);
         // convert Calendar -> Instant -> LocalDateTime
         return LocalDateTime.ofInstant(calendar.toInstant(), ZoneId.systemDefault());
     }
 
+    /**
+     * Converts given {@code Calendar} to {@code ZonedDateTime}. The conversion is done by converting given {@code
+     * Calendar} to {@code Instant} from which the {@code ZonedDateTime} instance is created using time zone
+     * <strong>from the calendar</strong>.
+     *
+     * @param calendar calendar instance to be converted to corresponding {@code LocalDateTime} using time zone
+     *                 <strong>from the calendar</strong>
+     * @return {@code LocalDateTime} instance corresponding to date represented by given {@code Calendar} w.r.t. time
+     * zone <strong>from the calendar</strong>.
+     */
     public static ZonedDateTime calendarToZonedDateTime(Calendar calendar) {
         Objects.requireNonNull(calendar);
         // convert Calendar -> Instant -> LocalDateTime
         return ZonedDateTime.ofInstant(calendar.toInstant(), calendar.getTimeZone().toZoneId());
     }
 
-    public static Object[] checkAndConvertMethodParameters(String requestMethodName, Type[] methodParameterTypes,
+    /**
+     * Convenience method for converting array of method parameters to required types.
+     * <p/>
+     * This method assumes that {@code methodParameterTypes} accurately reflect number, ordering and number of
+     * parameters of method named {@code fullMethodName}. Assuming that, it checks that the number of {@code parameters}
+     * matches exactly the number of required parameters and tries to convert each of them to corresponding required
+     * type.
+     *
+     * @param fullMethodName       <strong>full</strong> {@code FRPC} method name (that is name including the handler
+     *                             part)
+     * @param methodParameterTypes types of parameters required by the {@code FRPC} method implementation
+     * @param parameters           parameters provided by caller of the {@code FRPC} method
+     * @return array of given parameters, each converted into required type
+     * @throws IllegalArgumentException if there are too few or too many parameters given or if any of given parameters
+     *                                  could not be converted to required type
+     */
+    public static Object[] checkAndConvertMethodParameters(String fullMethodName, Type[] methodParameterTypes,
                                                            Object[] parameters) {
         LOGGER.debug("Trying to convert arguments {} given to method \"{}\" to these parameter types: {}",
-                parameters, requestMethodName, methodParameterTypes);
+                parameters, fullMethodName, methodParameterTypes);
 
         // check if there is at least as many arguments as their types
         if (methodParameterTypes.length < parameters.length) {
             LOGGER.warn("Too many arguments given to method \"{}\", {} arguments required but {} given. Ignoring " +
-                            "superfluous {} parameters.", requestMethodName, methodParameterTypes.length, parameters.length,
+                            "superfluous {} parameters.", fullMethodName, methodParameterTypes.length, parameters.length,
                     methodParameterTypes.length - parameters.length);
         } else if (methodParameterTypes.length > parameters.length) {
             LOGGER.error("Too few arguments given to method \"{}\", {} arguments required but only these {} " +
-                            "arguments" + " were given: {}", requestMethodName, methodParameterTypes.length,
+                            "arguments" + " were given: {}", fullMethodName, methodParameterTypes.length,
                     parameters.length, parameters);
-            throw new IllegalArgumentException("Too few arguments given to method \"" + requestMethodName + "\", " +
+            throw new IllegalArgumentException("Too few arguments given to method \"" + fullMethodName + "\", " +
                     methodParameterTypes.length + " required but only " + parameters.length + " given.");
         }
 
@@ -159,6 +296,14 @@ public class FrpcTypesConverter {
         return arguments;
     }
 
+    /**
+     * Convenience method which calls {@link #convertToCompatibleInstance(Object, Type)} and throws an exception if the
+     * {@link ConversionResult} indicates failure.
+     *
+     * @param object object to be converted to given type
+     * @param type   type to convert given object to
+     * @return instance of desired type created via conversion from given object
+     */
     public static Object convertToCompatibleInstanceOrThrowException(Object object, Type type) {
         // try to convert the argument into something compatible with current parameter type
         ConversionResult conversionResult = convertToCompatibleInstance(object, type);
@@ -172,6 +317,99 @@ public class FrpcTypesConverter {
         return conversionResult.getErrorMessage();
     }
 
+    /**
+     * Tries to convert given object into (possibly another) object of required type.
+     * <p/>
+     * <i>Conversion</i> from object of one type to object of another type performed by this method may be done in
+     * several ways. For further reference, lets call the object <i>which is to be converted</i> the
+     * <strong>source object</strong> and lets call its type <strong>source type</strong>, furthermore lets call the 
+     * desired type of resulting object {@code result type} and lets call the object being <i>the result of the 
+     * conversion</i> a <strong>result object</strong>.
+     * <p/>
+     * The conversion then works as follows:
+     * <ul>
+     *     <li>
+     *         <strong>Casting</strong> <br />
+     *         If the <strong>result type</strong> is simply a {@link Class} and the <strong>source object</strong> is
+     *         {@code instanceof} that class, it is simply casted to that class. The <strong>result object</strong> is
+     *         then the very same object as the <strong>source object</strong>. <br/>
+     *         This also covers the case when the <strong>source object</strong> is null and the
+     *         <strong>result type</strong> is not a primitive type.
+     *     </li>
+     *     <li>
+     *         <strong>Integer -> Long</strong> <br />
+     *         If the <strong>source type</strong> is {@link Integer} and the <strong>result type</strong> is
+     *         {@link Long}, the <strong>source object</strong> is converted to {@code Long} using
+     *         {@link Integer#longValue()}. This works for {@code int} and {@code long} as well.
+     *     </li>
+     *     <li>
+     *         <strong>Float -> Double</strong> <br />
+     *         If the <strong>source type</strong> is {@link Float} and the <strong>result type</strong> is
+     *         {@link Double}, the <strong>source object</strong> is converted to {@code Long} using
+     *         {@link Float#doubleValue()}. This works for {@code float} and {@code double} as well.
+     *     </li>
+     *     <li>
+     *         <strong>Calendar -> other Date types</strong> <br />
+     *         If the <strong>source type</strong> is {@link Calendar} and the <strong>result type</strong> is either
+     *         {@link Date}, {@link LocalDateTime} or {@link ZonedDateTime} the <strong>source object</strong> is
+     *         converted to the <strong>result object</strong> using respective {@code calendarTo...()} method of this
+     *         converter.
+     *     </li>
+     *     <li>
+     *         <strong>Maps</strong> <br />
+     *         If the <strong>source type</strong> represents a {@code Map} and the <strong>result type</strong> is
+     *         {@link #isSupportedMapType(Class) supported map type}, then a new map of <strong>result type</strong> is
+     *         instantiated and populated by converted entries of the <strong>source object</strong>. <br />
+     *         Keys and values of the <strong>source object</strong> are subjected to this conversion process as well
+     *         so that the conversion is fully type-safe. <br />
+     *         In case the <strong>result type</strong> is a {@link Class}, then generic information is not available
+     *         and it is handled as if parameterized type {@code Map<Object, Object>} was given. <br />
+     *         If the map type is provided as a {@link ParameterizedType}, then keys and values of the <strong>source
+     *         object</strong> are mapped to their respective types determined from type arguments of provided
+     *         parameterized  type.
+     *     </li>
+     *     <li>
+     *         <strong>Collections</strong> <br />
+     *         If the <strong>source type</strong> represents a {@code Collection} and the <strong>result type</strong>
+     *         is {@link #isSupportedCollectionType(Class) supported collection type}, then a new collection of
+     *         <strong>result type</strong> is instantiated and populated by converted elements of the <strong>source
+     *         object</strong>. <br />
+     *         Elements of the <strong>source object</strong> are subjected to this conversion process as well
+     *         so that the conversion is fully type-safe. <br />
+     *         In case the <strong>result type</strong> is a {@link Class}, then generic information is not available
+     *         and it is handled as if it was parameterized with {@code <Object>}. <br />
+     *         If the collection type is provided as a {@link ParameterizedType}, then elements of the <strong>source
+     *         object</strong> are mapped to the type determined from type arguments of provided parameterized type.
+     *     </li>
+     *     <li>
+     *         <strong>Arrays -> arrays or collections</strong> <br />
+     *         If the <strong>source type</strong> represents an array and the <strong>result type</strong>
+     *         is either an array or it is {@link #isSupportedCollectionType(Class) supported collection type}, then a
+     *         new array or collection of <strong>result type</strong> is instantiated and populated by converted
+     *         elements of the <strong>source object</strong>. <br />
+     *         Elements of the <strong>source object</strong> are subjected to this conversion process as well
+     *         so that the conversion is fully type-safe. <br />
+     *         In case the <strong>result type</strong> is a {@link Class} representing a collection, then generic
+     *         information is not available and it is handled as if it was parameterized with {@code <Object>}.
+     *         If the collection type is provided as a {@link ParameterizedType}, then elements of the <strong>source
+     *         object</strong> are mapped to the type determined from type arguments of provided type. <br />
+     *         In case the <strong>result type</strong> is an array type, the <strong>resource object</strong> is
+     *         created as an array with the same {@link Class#getComponentType() component type}. This works even for
+     *         generic arrays in which case the component type of the newly created array is the <i>raw type</i> of
+     *         component type of given generic array type.
+     *     </li>
+     *     <li>
+     *         <strong>Other cases</strong> <br />
+     *         If the combination of <strong>source type</strong> and <strong>result type</strong> matches none of the
+     *         cases above, then this converter cannot convert <strong>source object</strong> to desired
+     *         <strong>result type</strong> and the conversion fails.
+     *     </li>
+     * </ul>
+     *
+     * @param object object to be converted to given type
+     * @param type type to convert given object into
+     * @return instance of {@code ConversionResult} indicating either success or failure of the conversion process
+     */
     public static ConversionResult convertToCompatibleInstance(Object object, Type type) {
         // check the method parameter type implementation
         if (type instanceof Class) {

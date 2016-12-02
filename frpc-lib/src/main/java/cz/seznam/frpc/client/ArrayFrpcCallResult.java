@@ -43,8 +43,8 @@ public class ArrayFrpcCallResult<T> extends AbstractFrpcCallResult<T[]> {
      * Returns the {@code index}-th element in the underlying array wrapped into {@link FrpcCallResult} so that
      * additional utility methods can be called upon it.
      *
-     * @param index index pointing to an element in the underlying array which is to be wrapped in
-     *              {@code FrpcCallResult} and returned
+     * @param index index pointing to an element in the underlying array which is to be wrapped in {@code
+     *              FrpcCallResult} and returned
      * @return {@code index}-th element in the underlying array wrapped into {@link FrpcCallResult}
      * @see #getRaw(int)
      */
@@ -53,7 +53,8 @@ public class ArrayFrpcCallResult<T> extends AbstractFrpcCallResult<T[]> {
     }
 
     /**
-     * Returns the {@code index}-th element in the underlying array as-is
+     * Returns the {@code index}-th element in the underlying array as-is, without wrapping it into {@code
+     * FrpcCallResult}.
      *
      * @param index index pointing to an element in the underlying array which is to be returned
      * @return {@code index}-th element in the underlying array as-is
@@ -78,8 +79,8 @@ public class ArrayFrpcCallResult<T> extends AbstractFrpcCallResult<T[]> {
      * Convenience method for calling {@link #get(int)} with given parameter and subsequently calling
      * {@link FrpcCallResult#asArrayOf(Class)} on the result with second parameter.
      *
-     * @param index     index pointing to an element in the underlying array which is to be converted to an array of given
-     *                  type, wrapped in {@code ArrayFrpcCallResult} and returned
+     * @param index     index pointing to an element in the underlying array which is to be converted to an array of
+     *                  given type, wrapped in {@code ArrayFrpcCallResult} and returned
      * @param arrayType component type of the array to be returned
      * @return result of operations described above
      */
@@ -91,8 +92,8 @@ public class ArrayFrpcCallResult<T> extends AbstractFrpcCallResult<T[]> {
      * Convenience method for calling {@link #get(int)} with given parameter and subsequently calling
      * {@link FrpcCallResult#asArrayOf(FrpcType)} on the result with second parameter.
      *
-     * @param index     index pointing to an element in the underlying array which is to be converted to an array of given
-     *                  type, wrapped in {@code ArrayFrpcCallResult} and returned
+     * @param index     index pointing to an element in the underlying array which is to be converted to an array of
+     *                  given type, wrapped in {@code ArrayFrpcCallResult} and returned
      * @param arrayType {@link FrpcType} describing the component type of the array to be returned
      * @return result of operations described above
      */

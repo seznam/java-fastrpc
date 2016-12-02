@@ -90,7 +90,7 @@ public class FrpcCallResult<T> extends AbstractFrpcCallResult<T> {
         return (U) as(Objects.requireNonNull(type, "Type must not be null").getGenericType());
     }
 
-    Object as(Type type) {
+    private Object as(Type type) {
         // try to convert value to type described by given generic type
         ConversionResult result = FrpcTypesConverter.convertToCompatibleInstance(wrapped, type);
         // if the conversion was successful, return the result
@@ -160,11 +160,11 @@ public class FrpcCallResult<T> extends AbstractFrpcCallResult<T> {
      * @throws ClassCastException if the wrapped object could not be converted into an array of desired type
      * @throws FrpcFaultException if the wrapped object could not be converted into an array of desired type and it is
      *                            an instance of {@link FrpcFault}
-     * @see FrpcTypesConverter#convertToCompatibleInstanceOrThrowException(Object, Type)
+     * @see FrpcTypesConverter#convertToCompatibleInstance(Object, Type)
      */
     @SuppressWarnings("unchecked")
-    public <T> ArrayFrpcCallResult<T> asArrayOf(Class<T> type) {
-        return (ArrayFrpcCallResult<T>) asArrayOf((Type) type);
+    public <U> ArrayFrpcCallResult<U> asArrayOf(Class<U> type) {
+        return (ArrayFrpcCallResult<U>) asArrayOf((Type) type);
     }
 
     /**
@@ -175,21 +175,21 @@ public class FrpcCallResult<T> extends AbstractFrpcCallResult<T> {
      * @throws ClassCastException if the wrapped object could not be converted into an array of desired type
      * @throws FrpcFaultException if the wrapped object could not be converted into an array of desired type and it is
      *                            an instance of {@link FrpcFault}
-     * @see FrpcTypesConverter#convertToCompatibleInstanceOrThrowException(Object, Type)
+     * @see FrpcTypesConverter#convertToCompatibleInstance(Object, Type)
      */
     @SuppressWarnings("unchecked")
-    public <T> ArrayFrpcCallResult<T> asArrayOf(FrpcType<T> type) {
-        return (ArrayFrpcCallResult<T>) asArrayOf(type.getGenericType());
+    public <U> ArrayFrpcCallResult<U> asArrayOf(FrpcType<U> type) {
+        return (ArrayFrpcCallResult<U>) asArrayOf(type.getGenericType());
     }
 
     @SuppressWarnings("unchecked")
-    <T> ArrayFrpcCallResult<T> asArrayOf(Type type) {
+    <U> ArrayFrpcCallResult<U> asArrayOf(Type type) {
         if (!isArray()) {
             throw new IllegalStateException(
                     "Cannot convert this FRPC result to array form since the object wrapped by this instance is not " +
                             "an array, it is a " + getWrappedType());
         }
-        return new ArrayFrpcCallResult<>((T[]) as(TypeUtils.genericArrayType(type)), httpResponseStatus);
+        return new ArrayFrpcCallResult<>((U[]) as(TypeUtils.genericArrayType(type)), httpResponseStatus);
     }
 
 }
